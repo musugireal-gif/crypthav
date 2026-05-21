@@ -11,6 +11,7 @@
             --panel-bg: #13131a;
             --accent-red: #ff3333;
             --accent-purple: #9d4edd;
+            --accent-gold: #ffd700;
             --text-main: #f0f0f5;
             --text-muted: #8a8a98;
             --glow: 0 0 10px rgba(255, 51, 51, 0.4);
@@ -33,7 +34,7 @@
             z-index: -1;
         }
 
-        /* БОКОВОЕ МЕНЮ (SIDEBAR) */
+        /* БОКОВОЕ МЕНЮ */
         aside {
             width: var(--sidebar-width);
             background-color: var(--panel-bg);
@@ -74,14 +75,16 @@
 
         .sidebar-footer { font-size: 11px; color: var(--text-muted); text-align: center; font-style: italic; }
 
-        /* ОСНОВНОЙ КОНТЕНТ */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            padding: 40px;
-            min-height: 100vh;
+        /* АДМИН ПАНЕЛЬКА В МЕНЮ */
+        .admin-badge {
+            background: rgba(255, 215, 0, 0.1); border: 1px dashed var(--accent-gold);
+            padding: 10px; border-radius: 6px; color: var(--accent-gold);
+            font-size: 12px; text-align: center; margin-bottom: 15px; font-weight: bold;
+            display: none;
         }
 
+        /* ОСНОВНОЙ КОНТЕНТ */
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; min-height: 100vh; }
         .container { max-width: 900px; width: 100%; margin: 0 auto; }
         .screen { display: none; }
         .screen.active { display: block; animation: fadeIn 0.4s ease-out; }
@@ -108,7 +111,11 @@
         .story-card:hover { border-color: var(--accent-red); transform: translateY(-5px); box-shadow: 0 8px 25px rgba(255, 51, 51, 0.1); }
         .story-title { color: var(--accent-red); font-size: 20px; margin-bottom: 8px; font-weight: bold; }
         .story-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+        
+        /* СТИЛЬ ДЛЯ ГАЛОЧКИ АДМИНА */
         .story-author { color: var(--accent-purple); font-weight: bold; }
+        .story-author.is-admin { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+
         .story-snippet { color: #b3b3ba; font-size: 14px; line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .story-stats { display: flex; gap: 15px; font-size: 13px; color: var(--text-muted); border-top: 1px solid #1f1f29; padding-top: 12px; }
 
@@ -143,6 +150,8 @@
     <aside>
         <div class="logo" onclick="showFeed()">CRYPT<span>EXT</span></div>
         
+        <div id="admin-indicator" class="admin-badge">⚡ РЕЖИМ РАЗРАБОТЧИКА</div>
+
         <nav class="menu-nav">
             <button id="nav-feed" class="nav-btn active" onclick="showFeed()">
                 👁️ Лента историй
@@ -153,7 +162,7 @@
         </nav>
 
         <div class="sidebar-footer">
-            Открытый Архив Хоррора v2.1
+            Открытый Архив Хоррора v2.5
         </div>
     </aside>
 
@@ -170,7 +179,7 @@
             <section id="screen-create" class="screen">
                 <div class="story-form">
                     <h2 style="color: var(--accent-red); margin-bottom: 5px;">Поведай свой кошмар...</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 14px;">Твоя история останется в архивах навсегда.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 14px;">Если ввести секретный код в поле псевдонима, активируется аккаунт Администратора.</p>
                     
                     <div class="form-group">
                         <label>Ваш псевдоним / никнейм</label>
@@ -192,7 +201,7 @@
                 <div class="action-bar">
                     <button class="nav-btn" style="padding: 10px 20px;" onclick="showFeed()">← Назад в ленту</button>
                     <button id="delete-my-story-btn" class="nav-btn btn-danger" style="display: none; padding: 10px 20px;">
-                        🗑️ Удалить мою историю
+                        🗑️ Уничтожить историю
                     </button>
                 </div>
                 <div id="full-story-render"></div>
@@ -202,6 +211,10 @@
     </main>
 
     <script>
+        // --- 🔒 НАСТРОЙКА АДМИНА 🔒 ---
+        // Если ввести это слово в поле автора — включится скрытый админ-режим! Можешь изменить на любое своё.
+        const ADMIN_SECRET_CODE = 'alekseev-zvezda_admin_lova_290444'; 
+
         // --- НАСТРОЙКИ SUPABASE ---
         const SUPABASE_URL = 'https://rlscraalizkoqysccteo.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsc2NyYWFsaXprb3F5c2NjdGVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMjgzNzAsImV4cCI6MjA5NDkwNDM3MH0.S4LEl8T8Ousp2dT--yWFqhRvVJCzgVYe4Vc21IvHsnM'; 
@@ -210,6 +223,21 @@
         let activeStoryId = null;
         const mySessionId = localStorage.getItem('cryptext_session') || Math.random().toString(36).substring(3);
         localStorage.setItem('cryptext_session', mySessionId);
+
+        // Проверяем, запущен ли админ-режим на этом устройстве
+        let isAdminActive = localStorage.getItem('cryptext_admin') === 'true';
+
+        function updateAdminUI() {
+            const indicator = document.getElementById('admin-indicator');
+            if (isAdminActive) {
+                indicator.style.display = 'block';
+                if(document.getElementById('story-author')) {
+                    document.getElementById('story-author').value = "Администратор 👑";
+                }
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
 
         function formatDate(dateString) {
             const date = new Date(dateString);
@@ -223,6 +251,7 @@
             document.getElementById(screenId).classList.add('active');
             if(navId) document.getElementById(navId).classList.add('active');
             window.scrollTo(0,0);
+            if(screenId === 'screen-create') updateAdminUI();
         }
 
         function showFeed() {
@@ -250,7 +279,7 @@
 
                 const stories = storiesRes.data || [];
                 if (stories.length === 0) {
-                    container.innerHTML = '<div class="no-stories">Архив пуст. Станьте первым, нажав "Создать историю"!</div>';
+                    container.innerHTML = '<div class="no-stories">Архив пуст. Нажмите "Создать историю"!</div>';
                     return;
                 }
 
@@ -259,11 +288,14 @@
                     const lCount = (likesRes.data || []).filter(l => l.story_id === story.id).length;
                     const vCount = (viewsRes.data || []).filter(v => v.story_id === story.id).length;
 
+                    // Если автор содержит корону — красим ник золотым
+                    const adminClass = story.author.includes('👑') ? 'is-admin' : '';
+
                     return `
                         <div class="story-card" onclick="openStory(${story.id})">
                             <div>
                                 <div class="story-title">${escapeHTML(story.title)}</div>
-                                <div class="story-meta">От: <span class="story-author">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)}</div>
+                                <div class="story-meta">От: <span class="story-author ${adminClass}">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)}</div>
                                 <div class="story-snippet">${escapeHTML(story.content)}</div>
                             </div>
                             <div class="story-stats">
@@ -310,14 +342,15 @@
 
                 const story = storyRes.data;
                 if (!story) {
-                    renderContainer.innerHTML = '<p>История испарилась...</p>';
+                    renderContainer.innerHTML = '<p>История удалена.</p>';
                     deleteBtn.style.display = 'none';
                     return;
                 }
 
-                // ПРОВЕРКА: Если сессия автора совпадает с текущей сессией — показываем кнопку удаления
-                if (story.creator_session === mySessionId) {
+                // ПРОВЕРКА ПРАВ НА УДАЛЕНИЕ: Если это твоя история ИЛИ активен режим админа
+                if (story.creator_session === mySessionId || isAdminActive) {
                     deleteBtn.style.display = 'inline-block';
+                    deleteBtn.innerHTML = isAdminActive ? "🗑️ Удалить (АДМИН-РЕЖИМ)" : "🗑️ Удалить мою историю";
                     deleteBtn.onclick = () => deleteStory(story.id);
                 } else {
                     deleteBtn.style.display = 'none';
@@ -326,11 +359,12 @@
                 const comments = commentsRes.data || [];
                 const likes = likesRes.data || [];
                 const isLiked = likes.some(l => l.viewer_ip === mySessionId);
+                const adminClass = story.author.includes('👑') ? 'is-admin' : '';
 
                 renderContainer.innerHTML = `
                     <article class="full-story">
                         <h1 class="story-title" style="font-size:32px;">${escapeHTML(story.title)}</h1>
-                        <div class="story-meta" style="margin: 10px 0 20px 0;">Автор: <span class="story-author">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)} • 👁️ Просмотров: ${viewsRes.data?.length || 0}</div>
+                        <div class="story-meta" style="margin: 10px 0 20px 0;">Автор: <span class="story-author ${adminClass}">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)} • 👁️ Просмотров: ${viewsRes.data?.length || 0}</div>
                         <div class="full-story-content">${escapeHTML(story.content)}</div>
                         
                         <div style="margin: 30px 0 20px 0; padding-top:20px; border-top:1px solid #22222c;">
@@ -353,7 +387,7 @@
                             </div>
 
                             <div>
-                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Тишина... Слишком тихо.</p>' : 
+                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Тишина...</p>' : 
                                     comments.map(c => `
                                         <div class="comment-item">
                                             <div class="comment-header">
@@ -369,30 +403,39 @@
                     </article>
                 `;
             } catch(e) {
-                renderContainer.innerHTML = '<p>Ошибка сборки темной страницы.</p>';
+                renderContainer.innerHTML = '<p>Ошибка сборки страницы.</p>';
             }
         }
 
-        // ОПУБЛИКОВАТЬ ИСТОРИЮ (ТЕПЕРЬ С ИДЕНТИФИКАТОРОМ СОЗДАТЕЛЯ)
+        // ОПУБЛИКОВАТЬ ИСТОРИЮ
         async function publishStory() {
-            const author = document.getElementById('story-author').value.trim() || "Анонимный дух";
+            let author = document.getElementById('story-author').value.trim();
             const title = document.getElementById('story-title').value.trim();
             const content = document.getElementById('story-text').value.trim();
 
             if (!title || !content) return alert("Заполните название и текст вашего кошмара!");
 
+            // Если ввели секретный код
+            if (author === ADMIN_SECRET_CODE) {
+                isAdminActive = true;
+                localStorage.setItem('cryptext_admin', 'true');
+                author = "Администратор 👑";
+                updateAdminUI();
+                alert("Доступ подтверждён. Включен статус Администратора!");
+                return;
+            }
+
             try {
-                // Дополнительно отправляем параметр creator_session
                 const { error } = await _supabase.from('stories').insert([{ 
                     title, 
                     content, 
-                    author,
+                    author: author || "Анонимный дух",
                     creator_session: mySessionId 
                 }]);
                 
                 if (error) throw error;
 
-                alert("Ваша летопись успешно добавлена в архив!");
+                alert("История успешно сохранена в архивах!");
                 document.getElementById('story-title').value = "";
                 document.getElementById('story-text').value = "";
                 showFeed();
@@ -401,28 +444,29 @@
             }
         }
 
-        // УДАЛЕНИЕ СВОЕЙ ИСТОРИИ
+        // УДАЛЕНИЕ ИСТОРИИ
         async function deleteStory(id) {
-            if (!confirm("Вы уверены, что хотите навсегда стереть свою историю из архивов?")) return;
+            if (!confirm("Удалить эту историю навсегда? Действие необратимо.")) return;
 
             try {
-                // Для безопасности удаляем только если ID сессии совпадает и в самой базе
-                const { error } = await _supabase
-                    .from('stories')
-                    .delete()
-                    .eq('id', id)
-                    .eq('creator_session', mySessionId);
+                let query = _supabase.from('stories').delete().eq('id', id);
+                
+                // Если мы НЕ админ, то база удалит только если совпадет сессия создателя
+                if (!isAdminActive) {
+                    query = query.eq('creator_session', mySessionId);
+                }
 
+                const { error } = await query;
                 if (error) throw error;
 
-                alert("История успешно уничтожена.");
+                alert("История стерта.");
                 showFeed();
             } catch(e) {
-                alert("Не удалось удалить историю: " + e.message);
+                alert("Не удалось удалить: " + e.message);
             }
         }
 
-        // КОММЕНТИРОВАНИЕ И ЛАЙКИ
+        // КОММЕНТЫ И ЛАЙКИ
         async function postComment(id) {
             const author = document.getElementById('comment-author').value.trim() || "Аноним";
             const text = document.getElementById('comment-text').value.trim();
@@ -450,7 +494,8 @@
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        // Запуск
+        // Старт
+        updateAdminUI();
         loadStories();
     </script>
 </body>

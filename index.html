@@ -69,6 +69,8 @@
             background: linear-gradient(45deg, var(--accent-red), #b30000); border: none; color: white; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; justify-content: center;
         }
         .nav-btn.btn-create:hover { box-shadow: var(--glow); transform: translateY(-2px); }
+        .nav-btn.btn-danger { background: #441111; border: 1px solid var(--accent-red); color: #ff9999; }
+        .nav-btn.btn-danger:hover { background: var(--accent-red); color: white; }
 
         .sidebar-footer { font-size: 11px; color: var(--text-muted); text-align: center; font-style: italic; }
 
@@ -114,7 +116,7 @@
         .full-story { background-color: var(--panel-bg); padding: 40px; border-radius: 12px; border: 1px solid #22222c; }
         .full-story-content { font-size: 17px; line-height: 1.7; color: #e1e1e6; white-space: pre-line; margin: 25px 0; }
         
-        .action-bar { display: flex; gap: 15px; margin-bottom: 25px; }
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .like-btn { background: #1c1c24; border: 1px solid #3a3a4a; color: var(--text-main); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .like-btn.liked { background: rgba(255, 51, 51, 0.2); border-color: var(--accent-red); color: var(--accent-red); }
 
@@ -151,7 +153,7 @@
         </nav>
 
         <div class="sidebar-footer">
-            Открытый Архив Хоррора v2.0
+            Открытый Архив Хоррора v2.1
         </div>
     </aside>
 
@@ -189,6 +191,9 @@
             <section id="screen-story" class="screen">
                 <div class="action-bar">
                     <button class="nav-btn" style="padding: 10px 20px;" onclick="showFeed()">← Назад в ленту</button>
+                    <button id="delete-my-story-btn" class="nav-btn btn-danger" style="display: none; padding: 10px 20px;">
+                        🗑️ Удалить мою историю
+                    </button>
                 </div>
                 <div id="full-story-render"></div>
             </section>
@@ -211,7 +216,6 @@
             return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
         }
 
-        // Переключение экранов + подсветка кнопок в меню
         function switchScreen(screenId, navId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -293,6 +297,7 @@
         // РЕНДЕР СТРАНИЦЫ ИСТОРИИ
         async function renderStoryPage(id) {
             const renderContainer = document.getElementById('full-story-render');
+            const deleteBtn = document.getElementById('delete-my-story-btn');
             if (!renderContainer) return;
 
             try {
@@ -306,7 +311,16 @@
                 const story = storyRes.data;
                 if (!story) {
                     renderContainer.innerHTML = '<p>История испарилась...</p>';
+                    deleteBtn.style.display = 'none';
                     return;
+                }
+
+                // ПРОВЕРКА: Если сессия автора совпадает с текущей сессией — показываем кнопку удаления
+                if (story.creator_session === mySessionId) {
+                    deleteBtn.style.display = 'inline-block';
+                    deleteBtn.onclick = () => deleteStory(story.id);
+                } else {
+                    deleteBtn.style.display = 'none';
                 }
 
                 const comments = commentsRes.data || [];
@@ -359,7 +373,7 @@
             }
         }
 
-        // ОПУБЛИКОВАТЬ ИСТОРИЮ
+        // ОПУБЛИКОВАТЬ ИСТОРИЮ (ТЕПЕРЬ С ИДЕНТИФИКАТОРОМ СОЗДАТЕЛЯ)
         async function publishStory() {
             const author = document.getElementById('story-author').value.trim() || "Анонимный дух";
             const title = document.getElementById('story-title').value.trim();
@@ -368,15 +382,43 @@
             if (!title || !content) return alert("Заполните название и текст вашего кошмара!");
 
             try {
-                const { error } = await _supabase.from('stories').insert([{ title, content, author }]);
+                // Дополнительно отправляем параметр creator_session
+                const { error } = await _supabase.from('stories').insert([{ 
+                    title, 
+                    content, 
+                    author,
+                    creator_session: mySessionId 
+                }]);
+                
                 if (error) throw error;
 
                 alert("Ваша летопись успешно добавлена в архив!");
                 document.getElementById('story-title').value = "";
                 document.getElementById('story-text').value = "";
-                showFeed(); // Возвращаем на главную ленту
+                showFeed();
             } catch(e) { 
                 alert("Ошибка публикации: " + e.message); 
+            }
+        }
+
+        // УДАЛЕНИЕ СВОЕЙ ИСТОРИИ
+        async function deleteStory(id) {
+            if (!confirm("Вы уверены, что хотите навсегда стереть свою историю из архивов?")) return;
+
+            try {
+                // Для безопасности удаляем только если ID сессии совпадает и в самой базе
+                const { error } = await _supabase
+                    .from('stories')
+                    .delete()
+                    .eq('id', id)
+                    .eq('creator_session', mySessionId);
+
+                if (error) throw error;
+
+                alert("История успешно уничтожена.");
+                showFeed();
+            } catch(e) {
+                alert("Не удалось удалить историю: " + e.message);
             }
         }
 

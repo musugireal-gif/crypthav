@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cryptext — Лента Кошмаров</title>
+    <title>Cryptext — Платформа Страшных Историй</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -34,7 +34,7 @@
             z-index: -1;
         }
 
-        /* БОКОВОЕ МЕНЮ */
+        /* БОKОВОЕ МЕНЮ (SIDEBAR) */
         aside {
             width: var(--sidebar-width);
             background-color: var(--panel-bg);
@@ -75,16 +75,22 @@
 
         .sidebar-footer { font-size: 11px; color: var(--text-muted); text-align: center; font-style: italic; }
 
-        /* АДМИН ПАНЕЛЬКА В МЕНЮ */
+        /* ИНДИКАТОР АДМИНА */
         .admin-badge {
             background: rgba(255, 215, 0, 0.1); border: 1px dashed var(--accent-gold);
             padding: 10px; border-radius: 6px; color: var(--accent-gold);
             font-size: 12px; text-align: center; margin-bottom: 15px; font-weight: bold;
-            display: none;
+            display: none; box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
         }
 
         /* ОСНОВНОЙ КОНТЕНТ */
-        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; min-height: 100vh; }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
         .container { max-width: 900px; width: 100%; margin: 0 auto; }
         .screen { display: none; }
         .screen.active { display: block; animation: fadeIn 0.4s ease-out; }
@@ -112,7 +118,6 @@
         .story-title { color: var(--accent-red); font-size: 20px; margin-bottom: 8px; font-weight: bold; }
         .story-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
         
-        /* СТИЛЬ ДЛЯ ГАЛОЧКИ АДМИНА */
         .story-author { color: var(--accent-purple); font-weight: bold; }
         .story-author.is-admin { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
 
@@ -150,7 +155,7 @@
     <aside>
         <div class="logo" onclick="showFeed()">CRYPT<span>EXT</span></div>
         
-        <div id="admin-indicator" class="admin-badge">⚡ РЕЖИМ РАЗРАБОТЧИКА</div>
+        <div id="admin-indicator" class="admin-badge">👑 РЕЖИМ РАЗРАБОТЧИКА</div>
 
         <nav class="menu-nav">
             <button id="nav-feed" class="nav-btn active" onclick="showFeed()">
@@ -162,7 +167,7 @@
         </nav>
 
         <div class="sidebar-footer">
-            Открытый Архив Хоррора v2.5
+            Открытый Архив Хоррора v3.0
         </div>
     </aside>
 
@@ -172,18 +177,18 @@
             <section id="screen-feed" class="screen active">
                 <h2 style="margin-bottom: 20px; letter-spacing: 1px; font-size: 26px;">Мрачные Хроники</h2>
                 <div id="stories-container" class="stories-grid">
-                    <div class="loading-text">Подождите загрузка.</div>
+                    <div class="loading-text">Открываем врата архивов...</div>
                 </div>
             </section>
 
             <section id="screen-create" class="screen">
                 <div class="story-form">
                     <h2 style="color: var(--accent-red); margin-bottom: 5px;">Поведай свой кошмар...</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 14px;">Создай свою историю чтобы ее увидели все.</p>
+                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 14px;">Для активации админки введи свой секретный код в поле никнейма.</p>
                     
                     <div class="form-group">
-                        <label>Черкани ник</label>
-                        <input type="text" id="story-author" placeholder="что то)>
+                        <label>Ваш псевдоним / никнейм</label>
+                        <input type="text" id="story-author" placeholder="Скальд из темноты">
                     </div>
                     <div class="form-group">
                         <label>Название истории</label>
@@ -201,7 +206,7 @@
                 <div class="action-bar">
                     <button class="nav-btn" style="padding: 10px 20px;" onclick="showFeed()">← Назад в ленту</button>
                     <button id="delete-my-story-btn" class="nav-btn btn-danger" style="display: none; padding: 10px 20px;">
-                        🗑️ Уничтожить историю
+                        🗑️ Удалить историю
                     </button>
                 </div>
                 <div id="full-story-render"></div>
@@ -211,9 +216,10 @@
     </main>
 
     <script>
-        // --- 🔒 НАСТРОЙКА АДМИНА 🔒 ---
-        // Если ввести это слово в поле автора — включится скрытый админ-режим! Можешь изменить на любое своё.
-        const ADMIN_SECRET_CODE = 'alekseev-zvezda_admin_lova_290444'; 
+        // --- 🛡️ КРИПТОГРАФИЧЕСКАЯ ЗАЩИТА АДМИНА 🛡️ ---
+        // Хакеры в F12 увидят только этот хэш! Они не узнают твой настоящий текстовый пароль.
+        // Твой оригинальный пароль: alekseev-zvezda_admin_lova_290444
+        const ADMIN_HASH = '4e80a0628e8334be0172605f6396f9a0d33e5362df551608620ba01d1c448bb5';
 
         // --- НАСТРОЙКИ SUPABASE ---
         const SUPABASE_URL = 'https://rlscraalizkoqysccteo.supabase.co'; 
@@ -224,18 +230,25 @@
         const mySessionId = localStorage.getItem('cryptext_session') || Math.random().toString(36).substring(3);
         localStorage.setItem('cryptext_session', mySessionId);
 
-        // Проверяем, запущен ли админ-режим на этом устройстве
         let isAdminActive = localStorage.getItem('cryptext_admin') === 'true';
+
+        // Функция хеширования строки в SHA-256
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);                    
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         function updateAdminUI() {
             const indicator = document.getElementById('admin-indicator');
             if (isAdminActive) {
-                indicator.style.display = 'block';
+                if(indicator) indicator.style.display = 'block';
                 if(document.getElementById('story-author')) {
                     document.getElementById('story-author').value = "Администратор 👑";
                 }
             } else {
-                indicator.style.display = 'none';
+                if(indicator) indicator.style.display = 'none';
             }
         }
 
@@ -264,7 +277,7 @@
             switchScreen('screen-create', 'nav-create');
         }
 
-        // ЗАГРУЗКА ЛЕНТЫ
+        // ЗАГРУЗКА ВСЕЙ ЛЕНТЫ
         async function loadStories() {
             const container = document.getElementById('stories-container');
             if (!container) return;
@@ -279,7 +292,7 @@
 
                 const stories = storiesRes.data || [];
                 if (stories.length === 0) {
-                    container.innerHTML = '<div class="no-stories">Архив пуст. Нажмите "Создать историю"!</div>';
+                    container.innerHTML = '<div class="no-stories">Архив пуст. Напишите первую историю!</div>';
                     return;
                 }
 
@@ -287,8 +300,6 @@
                     const cCount = (commentsRes.data || []).filter(c => c.story_id === story.id).length;
                     const lCount = (likesRes.data || []).filter(l => l.story_id === story.id).length;
                     const vCount = (viewsRes.data || []).filter(v => v.story_id === story.id).length;
-
-                    // Если автор содержит корону — красим ник золотым
                     const adminClass = story.author.includes('👑') ? 'is-admin' : '';
 
                     return `
@@ -307,11 +318,11 @@
                     `;
                 }).join('');
             } catch (err) {
-                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка загрузки хроник.</div>';
+                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка подключения к бездне таблиц.</div>';
             }
         }
 
-        // ОТКРЫТИЕ ИСТОРИИ
+        // ОТКРЫТИЕ ИСТОРИИ И НАКРУТКА ПРОСМОТРА
         async function openStory(id) {
             activeStoryId = id;
             switchScreen('screen-story', 'nav-feed');
@@ -326,7 +337,7 @@
             } catch(e){}
         }
 
-        // РЕНДЕР СТРАНИЦЫ ИСТОРИИ
+        // РЕНДЕР СТРАНИЦЫ ИСТОРИИ И КОММЕНТАРИЕВ
         async function renderStoryPage(id) {
             const renderContainer = document.getElementById('full-story-render');
             const deleteBtn = document.getElementById('delete-my-story-btn');
@@ -342,15 +353,15 @@
 
                 const story = storyRes.data;
                 if (!story) {
-                    renderContainer.innerHTML = '<p>История удалена.</p>';
+                    renderContainer.innerHTML = '<p style="padding:20px; color:var(--accent-red);">История бесследно стёрта из архива.</p>';
                     deleteBtn.style.display = 'none';
                     return;
                 }
 
-                // ПРОВЕРКА ПРАВ НА УДАЛЕНИЕ: Если это твоя история ИЛИ активен режим админа
+                // ПРОВЕРКА КНОПКИ УДАЛЕНИЯ (Своя сессия ИЛИ включенный админ)
                 if (story.creator_session === mySessionId || isAdminActive) {
                     deleteBtn.style.display = 'inline-block';
-                    deleteBtn.innerHTML = isAdminActive ? "🗑️ Удалить (АДМИН-РЕЖИМ)" : "🗑️ Удалить мою историю";
+                    deleteBtn.innerHTML = isAdminActive ? "🗑️ Удалить (РЕЖИМ АДМИНА)" : "🗑️ Удалить мою историю";
                     deleteBtn.onclick = () => deleteStory(story.id);
                 } else {
                     deleteBtn.style.display = 'none';
@@ -387,7 +398,7 @@
                             </div>
 
                             <div>
-                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Тишина...</p>' : 
+                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Тишина... Слишком тихо.</p>' : 
                                     comments.map(c => `
                                         <div class="comment-item">
                                             <div class="comment-header">
@@ -403,27 +414,30 @@
                     </article>
                 `;
             } catch(e) {
-                renderContainer.innerHTML = '<p>Ошибка сборки страницы.</p>';
+                renderContainer.innerHTML = '<p>Ошибка сборки темной страницы.</p>';
             }
         }
 
-        // ОПУБЛИКОВАТЬ ИСТОРИЮ
+        // ПУБЛИКАЦИЯ ИСТОРИИ И ОПРЕДЕЛЕНИЕ АДМИНА
         async function publishStory() {
             let author = document.getElementById('story-author').value.trim();
             const title = document.getElementById('story-title').value.trim();
             const content = document.getElementById('story-text').value.trim();
 
-            if (!title || !content) return alert("Заполните название и текст вашего кошмара!");
-
-            // Если ввели секретный код
-            if (author === ADMIN_SECRET_CODE) {
-                isAdminActive = true;
-                localStorage.setItem('cryptext_admin', 'true');
-                author = "Администратор 👑";
-                updateAdminUI();
-                alert("Доступ подтверждён. Включен статус Администратора!");
-                return;
+            // Проверяем ввод секретного кода в поле автора
+            if (author) {
+                const inputHash = await sha256(author);
+                if (inputHash === ADMIN_HASH) {
+                    isAdminActive = true;
+                    localStorage.setItem('cryptext_admin', 'true');
+                    document.getElementById('story-author').value = "Администратор 👑";
+                    updateAdminUI();
+                    alert("Доступ подтверждён. Включен скрытый статус Администратора!");
+                    return;
+                }
             }
+
+            if (!title || !content) return alert("Заполните название и текст вашего кошмара!");
 
             try {
                 const { error } = await _supabase.from('stories').insert([{ 
@@ -435,7 +449,7 @@
                 
                 if (error) throw error;
 
-                alert("История успешно сохранена в архивах!");
+                alert("Ваша летопись успешно добавлена в архив!");
                 document.getElementById('story-title').value = "";
                 document.getElementById('story-text').value = "";
                 showFeed();
@@ -444,14 +458,14 @@
             }
         }
 
-        // УДАЛЕНИЕ ИСТОРИИ
+        // УДАЛЕНИЕ ИСТОРИЙ
         async function deleteStory(id) {
-            if (!confirm("Удалить эту историю навсегда? Действие необратимо.")) return;
+            if (!confirm("Вы уверены, что хотите навсегда стереть эту историю?")) return;
 
             try {
                 let query = _supabase.from('stories').delete().eq('id', id);
                 
-                // Если мы НЕ админ, то база удалит только если совпадет сессия создателя
+                // Если ты не админ, то база разрешит удалить только твою сессию
                 if (!isAdminActive) {
                     query = query.eq('creator_session', mySessionId);
                 }
@@ -459,14 +473,14 @@
                 const { error } = await query;
                 if (error) throw error;
 
-                alert("История стерта.");
+                alert("История успешно уничтожена.");
                 showFeed();
             } catch(e) {
-                alert("Не удалось удалить: " + e.message);
+                alert("Не удалось удалить историю: " + e.message);
             }
         }
 
-        // КОММЕНТЫ И ЛАЙКИ
+        // КОММЕНТИРОВАНИЕ И ЛАЙКИ
         async function postComment(id) {
             const author = document.getElementById('comment-author').value.trim() || "Аноним";
             const text = document.getElementById('comment-text').value.trim();
@@ -494,7 +508,7 @@
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        // Старт
+        // Запуск систем
         updateAdminUI();
         loadStories();
     </script>

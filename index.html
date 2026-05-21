@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cryptext — Авторский Блог Кошмаров</title>
+    <title>Cryptext — Платформа Страшных Историй</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -58,8 +58,6 @@
         .btn:hover { transform: translateY(-2px); box-shadow: var(--glow); }
         .btn-secondary { background: transparent; border: 2px solid var(--accent-purple); color: var(--accent-purple); }
         .btn-secondary:hover { background: var(--accent-purple); color: white; }
-        .btn-danger { background: #551111; border: 1px solid var(--accent-red); color: white; }
-        .btn-danger:hover { background: var(--accent-red); }
 
         .story-form {
             background-color: var(--panel-bg); padding: 30px; border-radius: 10px;
@@ -81,6 +79,7 @@
         .story-card:hover { border-color: var(--accent-red); transform: translateY(-5px); box-shadow: 0 8px 25px rgba(255, 51, 51, 0.1); }
         .story-title { color: var(--accent-red); font-size: 20px; margin-bottom: 8px; font-weight: bold; }
         .story-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+        .story-author { color: var(--accent-purple); font-weight: bold; }
         .story-snippet { color: #b3b3ba; font-size: 14px; line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .story-stats { display: flex; gap: 15px; font-size: 13px; color: var(--text-muted); border-top: 1px solid #1f1f29; padding-top: 12px; }
 
@@ -103,32 +102,30 @@
 
     <header>
         <div class="logo" onclick="showFeed()">CRYPT<span>EXT</span></div>
-        <div id="author-badge">
-            <button class="btn btn-secondary" onclick="loginAsAuthor()">Войти как Автор</button>
-        </div>
+        <div style="color: var(--text-muted); font-size: 13px; font-style: italic;">Открытый Архив Хоррора</div>
     </header>
 
     <div class="container">
 
         <main id="screen-feed" class="screen active">
-            <div id="admin-panel" style="display: none;">
-                <div class="story-form">
-                    <h3 id="form-action-title" style="color: var(--accent-red); margin-bottom: 15px;">Добавить новую легенду</h3>
-                    <input type="hidden" id="edit-story-id">
-                    <div class="form-group">
-                        <label>Заголовок истории</label>
-                        <input type="text" id="story-title" placeholder="Введите мрачный заголовок">
-                    </div>
-                    <div class="form-group">
-                        <label>Текст кошмара</label>
-                        <textarea id="story-text" rows="7" placeholder="Опишите, что произошло..."></textarea>
-                    </div>
-                    <button class="btn" id="btn-save-story" onclick="saveStory()">Опубликовать</button>
-                    <button class="btn btn-secondary" id="btn-cancel-edit" style="display:none;" onclick="cancelEdit()">Отмена</button>
+            <div class="story-form">
+                <h3 style="color: var(--accent-red); margin-bottom: 15px;">Поведай свой кошмар миру...</h3>
+                <div class="form-group">
+                    <label>Ваш псевдоним / никнейм</label>
+                    <input type="text" id="story-author" placeholder="Скальд из темноты">
                 </div>
+                <div class="form-group">
+                    <label>Название истории</label>
+                    <input type="text" id="story-title" placeholder="Введите зловещий заголовок">
+                </div>
+                <div class="form-group">
+                    <label>Текст кошмара</label>
+                    <textarea id="story-text" rows="6" placeholder="Что произошло той ночью?.."></textarea>
+                </div>
+                <button class="btn" onclick="publishStory()">Опубликовать на сайт</button>
             </div>
 
-            <h2 style="margin-bottom: 20px; letter-spacing: 1px;">Мрачные Хроники</h2>
+            <h2 style="margin-bottom: 20px; letter-spacing: 1px;">Мрачные Хроники пользователей</h2>
             <div id="stories-container" class="stories-grid">
                 <div class="loading-text">Открываем врата архивов...</div>
             </div>
@@ -137,8 +134,6 @@
         <section id="screen-story" class="screen">
             <div class="action-bar">
                 <button class="btn btn-secondary" onclick="showFeed()">← Назад в ленту</button>
-                <button class="btn" id="admin-edit-btn" style="display:none;">Редактировать</button>
-                <button class="btn btn-danger" id="admin-delete-btn" style="display:none;">Удалить историю</button>
             </div>
             <div id="full-story-render"></div>
         </section>
@@ -151,13 +146,11 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsc2NyYWFsaXprb3F5c2NjdGVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMjgzNzAsImV4cCI6MjA5NDkwNDM3MH0.S4LEl8T8Ousp2dT--yWFqhRvVJCzgVYe4Vc21IvHsnM'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Секретный пароль для тебя (можешь поменять на любой)
-        const SECRET_PASSWORD = "1234"; 
-
-        let isAuthor = localStorage.getItem('cryptext_is_author') === 'true';
         let activeStoryId = null;
-        const myIpMock = localStorage.getItem('cryptext_ip') || Math.random().toString(36).substring(3);
-        localStorage.setItem('cryptext_ip', myIpMock);
+        
+        // Создаем случайный маркер сессии для подсчета уникальных лайков/просмотров без логина
+        const mySessionId = localStorage.getItem('cryptext_session') || Math.random().toString(36).substring(3);
+        localStorage.setItem('cryptext_session', mySessionId);
 
         function formatDate(dateString) {
             const date = new Date(dateString);
@@ -173,49 +166,10 @@
         function showFeed() {
             activeStoryId = null;
             switchScreen('screen-feed');
-            cancelEdit();
-            updateUI();
+            loadStories();
         }
 
-        // Вход по секретному паролю
-        function loginAsAuthor() {
-            const pass = prompt("Введите секретный пароль создателя:");
-            if (pass === SECRET_PASSWORD) {
-                isAuthor = true;
-                localStorage.setItem('cryptext_is_author', 'true');
-                alert("Добро пожаловать, Создатель.");
-                updateUI();
-            } else if (pass !== null) {
-                alert("Доступ заблокирован. Чужакам здесь не рады.");
-            }
-        }
-
-        function logoutAuthor() {
-            isAuthor = false;
-            localStorage.removeItem('cryptext_is_author');
-            showFeed();
-        }
-
-        function updateUI() {
-            const badge = document.getElementById('author-badge');
-            const adminPanel = document.getElementById('admin-panel');
-
-            if (isAuthor) {
-                badge.innerHTML = `<span style="color:var(--accent-red); font-weight:bold; margin-right:15px;">Режим Автора</span><button class="btn btn-secondary" onclick="logoutAuthor()">Выйти</button>`;
-                adminPanel.style.display = 'block';
-            } else {
-                badge.innerHTML = `<button class="btn btn-secondary" onclick="loginAsAuthor()">Войти как Автор</button>`;
-                adminPanel.style.display = 'none';
-            }
-
-            if (activeStoryId) {
-                renderStoryPage(activeStoryId);
-            } else {
-                loadStories();
-            }
-        }
-
-        // ЗАГРУЗКА ЛЕНТЫ
+        // ЗАГРУЗКА И ВЫВОД ВСЕХ ИСТОРИЙ НА ГЛАВНУЮ
         async function loadStories() {
             const container = document.getElementById('stories-container');
             if (!container) return;
@@ -230,7 +184,7 @@
 
                 const stories = storiesRes.data || [];
                 if (stories.length === 0) {
-                    container.innerHTML = '<div class="no-stories">Свитков пока нет. Напишите первую историю!</div>';
+                    container.innerHTML = '<div class="no-stories">Архив пуст. Напишите первую историю выше!</div>';
                     return;
                 }
 
@@ -243,7 +197,7 @@
                         <div class="story-card" onclick="openStory(${story.id})">
                             <div>
                                 <div class="story-title">${escapeHTML(story.title)}</div>
-                                <div class="story-meta">Опубликовано: ${formatDate(story.created_at)}</div>
+                                <div class="story-meta">Автор: <span class="story-author">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)}</div>
                                 <div class="story-snippet">${escapeHTML(story.content)}</div>
                             </div>
                             <div class="story-stats">
@@ -255,40 +209,29 @@
                     `;
                 }).join('');
             } catch (err) {
-                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка подключения.</div>';
+                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка загрузки ленты.</div>';
             }
         }
 
+        // ОТКРЫТИЕ ИСТОРИИ И НАКРУТКА ПРОСМОТРА
         async function openStory(id) {
             activeStoryId = id;
             switchScreen('screen-story');
-            updateUI();
+            renderStoryPage(id);
 
-            // Засчитываем просмотр
             try {
                 if (!sessionStorage.getItem(`v_${id}`)) {
-                    await _supabase.from('views').insert([{ story_id: id, viewer_session: myIpMock }]);
+                    await _supabase.from('views').insert([{ story_id: id, viewer_session: mySessionId }]);
                     sessionStorage.setItem(`v_${id}`, 'true');
-                    updateUI();
+                    renderStoryPage(id);
                 }
             } catch(e){}
         }
 
-        // СТРАНИЦА ИСТОРИИ
+        // РЕНДЕР СТРАНИЦЫ С ПОЛНЫМ ТЕКСТОМ И КОММЕНТАРИЯМИ
         async function renderStoryPage(id) {
             const renderContainer = document.getElementById('full-story-render');
-            const editBtn = document.getElementById('admin-edit-btn');
-            const deleteBtn = document.getElementById('admin-delete-btn');
-
-            if (isAuthor) {
-                editBtn.style.display = 'inline-block';
-                deleteBtn.style.display = 'inline-block';
-                editBtn.onclick = () => startEdit(id);
-                deleteBtn.onclick = () => deleteStory(id);
-            } else {
-                editBtn.style.display = 'none';
-                deleteBtn.style.display = 'none';
-            }
+            if (!renderContainer) return;
 
             try {
                 const [storyRes, commentsRes, likesRes, viewsRes] = await Promise.all([
@@ -300,18 +243,18 @@
 
                 const story = storyRes.data;
                 if (!story) {
-                    renderContainer.innerHTML = '<p>История удалена.</p>';
+                    renderContainer.innerHTML = '<p>История не найдена.</p>';
                     return;
                 }
 
                 const comments = commentsRes.data || [];
                 const likes = likesRes.data || [];
-                const isLiked = likes.some(l => l.viewer_ip === myIpMock);
+                const isLiked = likes.some(l => l.viewer_ip === mySessionId);
 
                 renderContainer.innerHTML = `
                     <article class="full-story">
                         <h1 class="story-title" style="font-size:32px;">${escapeHTML(story.title)}</h1>
-                        <div class="story-meta" style="margin: 10px 0 20px 0;">Дата: ${formatDate(story.created_at)} • Просмотров: ${viewsRes.data?.length || 0}</div>
+                        <div class="story-meta" style="margin: 10px 0 20px 0;">Автор: <span class="story-author">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)} • 👁️ Просмотров: ${viewsRes.data?.length || 0}</div>
                         <div class="full-story-content">${escapeHTML(story.content)}</div>
                         
                         <div style="margin: 30px 0 20px 0; padding-top:20px; border-top:1px solid #22222c;">
@@ -325,16 +268,16 @@
                             
                             <div class="story-form" style="padding:20px; margin-bottom:25px; border-left-color: var(--accent-purple);">
                                 <div class="form-group" style="margin-bottom:12px;">
-                                    <input type="text" id="comment-author" placeholder="Ваше имя/никнейм" style="padding:8px;">
+                                    <input type="text" id="comment-author" placeholder="Ваш псевдоним" style="padding:8px;">
                                 </div>
                                 <div class="form-group" style="margin-bottom:12px;">
-                                    <textarea id="comment-text" rows="2" placeholder="Оставить комментарий..." style="padding:8px;"></textarea>
+                                    <textarea id="comment-text" rows="2" placeholder="Оставить след в комментариях..." style="padding:8px;"></textarea>
                                 </div>
                                 <button class="btn btn-secondary" onclick="postComment(${story.id})">Отправить</button>
                             </div>
 
                             <div>
-                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Здесь пока пусто...</p>' : 
+                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Здесь пока тихо... Слишком тихо.</p>' : 
                                     comments.map(c => `
                                         <div class="comment-item">
                                             <div class="comment-header">
@@ -354,73 +297,31 @@
             }
         }
 
-        // СОХРАНЕНИЕ / ИЗМЕНЕНИЕ ИСТОРИИ (ТОЛЬКО ДЛЯ ТЕБЯ)
-        async function saveStory() {
-            if (!isAuthor) return;
-
+        // ПУБЛИКАЦИЯ ИСТОРИИ (ОТ ЛЮБОГО ПОЛЬЗОВАТЕЛЯ)
+        async function publishStory() {
+            const author = document.getElementById('story-author').value.trim() || "Анонимный писатель";
             const title = document.getElementById('story-title').value.trim();
             const content = document.getElementById('story-text').value.trim();
-            const editId = document.getElementById('edit-story-id').value;
 
-            if (!title || !content) return alert("Заполните поля!");
+            if (!title || !content) return alert("Пожалуйста, заполните название и текст истории!");
 
             try {
-                if (editId) {
-                    // Редактирование
-                    await _supabase.from('stories').update({ title, content }).eq('id', editId);
-                    alert("История успешно изменена!");
-                } else {
-                    // Создание новой
-                    await _supabase.from('stories').insert([{ title, content }]);
-                    alert("История опубликована!");
-                }
-                showFeed();
-            } catch(e) { alert("Ошибка сохранения"); }
-        }
+                const { error } = await _supabase
+                    .from('stories')
+                    .insert([{ title, content, author }]);
 
-        function startEdit(id) {
-            _supabase.from('stories').select('*').eq('id', id).maybeSingle().then(res => {
-                if(res.data) {
-                    switchScreen('screen-feed');
-                    document.getElementById('edit-story-id').value = res.data.id;
-                    document.getElementById('story-title').value = res.data.title;
-                    document.getElementById('story-text').value = res.data.content;
-                    document.getElementById('form-action-title').innerText = "Редактировать историю";
-                    document.getElementById('btn-save-story').innerText = "Сохранить изменения";
-                    document.getElementById('btn-cancel-edit').style.display = "inline-block";
-                }
-            });
-        }
+                if (error) throw error;
 
-        function cancelEdit() {
-            document.getElementById('edit-story-id').value = "";
-            document.getElementById('story-title').value = "";
-            document.getElementById('story-text').value = "";
-            document.getElementById('form-action-title').innerText = "Поведай свой кошмар...";
-            document.getElementById('btn-save-story').innerText = "Опубликовать";
-            document.getElementById('btn-cancel-edit').style.display = "none";
-        }
-
-        async function deleteStory(id) {
-            if (!isAuthor) return;
-            if (confirm("Вы уверены, что хотите стереть эту историю навсегда?")) {
-                await _supabase.from('stories').delete().eq('id', id);
-                showFeed();
+                alert("Ваша история успешно записана в темные архивы!");
+                document.getElementById('story-title').value = "";
+                document.getElementById('story-text').value = "";
+                loadStories();
+            } catch(e) { 
+                alert("Ошибка при публикации: " + e.message); 
             }
         }
 
-        // ЛАЙКИ И КОММЕНТЫ ЧИТАТЕЛЕЙ
-        async function toggleLike(id, isLiked) {
-            try {
-                if (isLiked) {
-                    await _supabase.from('likes').delete().eq('story_id', id).eq('viewer_ip', myIpMock);
-                } else {
-                    await _supabase.from('likes').insert([{ story_id: id, viewer_ip: myIpMock }]);
-                }
-                updateUI();
-            } catch(e){}
-        }
-
+        // ОСТАВИТЬ КОММЕНТАРИЙ
         async function postComment(id) {
             const author = document.getElementById('comment-author').value.trim() || "Анонимный призрак";
             const text = document.getElementById('comment-text').value.trim();
@@ -428,7 +329,19 @@
 
             try {
                 await _supabase.from('comments').insert([{ story_id: id, author, text }]);
-                updateUI();
+                renderStoryPage(id);
+            } catch(e){}
+        }
+
+        // ЛАЙКИ
+        async function toggleLike(id, isLiked) {
+            try {
+                if (isLiked) {
+                    await _supabase.from('likes').delete().eq('story_id', id).eq('viewer_ip', mySessionId);
+                } else {
+                    await _supabase.from('likes').insert([{ story_id: id, viewer_ip: mySessionId }]);
+                }
+                renderStoryPage(id);
             } catch(e){}
         }
 
@@ -437,7 +350,8 @@
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        updateUI();
+        // Старт
+        loadStories();
     </script>
 </body>
 </html>

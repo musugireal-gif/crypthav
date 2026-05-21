@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cryptext — Платформа Страшных Историй</title>
+    <title>Cryptext — Лента Кошмаров</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -13,7 +13,8 @@
             --accent-purple: #9d4edd;
             --text-main: #f0f0f5;
             --text-muted: #8a8a98;
-            --glow: 0 0 10px rgba(255, 51, 51, 0.6);
+            --glow: 0 0 10px rgba(255, 51, 51, 0.4);
+            --sidebar-width: 280px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
@@ -23,7 +24,6 @@
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             overflow-x: hidden;
         }
 
@@ -33,45 +33,72 @@
             z-index: -1;
         }
 
-        header {
+        /* БОКОВОЕ МЕНЮ (SIDEBAR) */
+        aside {
+            width: var(--sidebar-width);
             background-color: var(--panel-bg);
-            padding: 20px 40px;
+            height: 100vh;
+            position: fixed;
+            top: 0; left: 0;
+            border-right: 2px solid var(--accent-red);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--accent-red);
-            box-shadow: 0 4px 20px rgba(255, 51, 51, 0.15);
+            flex-direction: column;
+            padding: 30px 20px;
+            box-shadow: 4px 0 20px rgba(255, 51, 51, 0.1);
+            z-index: 10;
         }
 
-        .logo { font-size: 28px; font-weight: bold; color: var(--accent-red); text-shadow: var(--glow); letter-spacing: 2px; cursor: pointer; }
+        .logo { 
+            font-size: 26px; font-weight: bold; color: var(--accent-red); 
+            text-shadow: var(--glow); letter-spacing: 2px; cursor: pointer; 
+            margin-bottom: 40px; text-align: center;
+        }
         .logo span { color: var(--accent-purple); text-shadow: 0 0 10px rgba(157, 78, 221, 0.6); }
 
-        .container { max-width: 1000px; width: 100%; margin: 40px auto; padding: 0 20px; flex: 1; }
+        .menu-nav { display: flex; flex-direction: column; gap: 15px; flex: 1; }
+        
+        .nav-btn {
+            background: #181822; color: var(--text-main); border: 1px solid #2d2d3d;
+            padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;
+            text-align: left; transition: 0.3s; font-size: 14px; display: flex; align-items: center; gap: 10px;
+        }
+        .nav-btn:hover, .nav-btn.active {
+            border-color: var(--accent-red); background: rgba(255, 51, 51, 0.05); color: white; box-shadow: 0 0 10px rgba(255, 51, 51, 0.2);
+        }
+        .nav-btn.btn-create {
+            background: linear-gradient(45deg, var(--accent-red), #b30000); border: none; color: white; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; justify-content: center;
+        }
+        .nav-btn.btn-create:hover { box-shadow: var(--glow); transform: translateY(-2px); }
+
+        .sidebar-footer { font-size: 11px; color: var(--text-muted); text-align: center; font-style: italic; }
+
+        /* ОСНОВНОЙ КОНТЕНТ */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 900px; width: 100%; margin: 0 auto; }
         .screen { display: none; }
         .screen.active { display: block; animation: fadeIn 0.4s ease-out; }
 
-        .btn {
-            background: linear-gradient(45deg, var(--accent-red), #b30000);
-            color: white; border: none; padding: 10px 20px; border-radius: 5px;
-            cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: var(--glow); }
-        .btn-secondary { background: transparent; border: 2px solid var(--accent-purple); color: var(--accent-purple); }
-        .btn-secondary:hover { background: var(--accent-purple); color: white; }
-
+        /* ФОРМА СОЗДАНИЯ */
         .story-form {
-            background-color: var(--panel-bg); padding: 30px; border-radius: 10px;
-            border-left: 4px solid var(--accent-red); margin-bottom: 40px;
+            background-color: var(--panel-bg); padding: 35px; border-radius: 12px;
+            border-left: 4px solid var(--accent-red); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 14px; }
         .form-group input, .form-group textarea {
-            width: 100%; padding: 12px; background-color: #0b0b0f; border: 1px solid #3a3a4a;
+            width: 100%; padding: 14px; background-color: #0b0b0f; border: 1px solid #3a3a4a;
             border-radius: 6px; color: white; font-size: 16px; transition: 0.3s;
         }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-red); }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.2); }
 
-        .stories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; margin-top: 20px; }
+        /* СЕТКА С ИСТОРИЯМИ */
+        .stories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 20px; }
         .story-card {
             background-color: var(--panel-bg); border: 1px solid #22222c; border-radius: 10px;
             padding: 25px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; transition: 0.3s;
@@ -83,62 +110,91 @@
         .story-snippet { color: #b3b3ba; font-size: 14px; line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .story-stats { display: flex; gap: 15px; font-size: 13px; color: var(--text-muted); border-top: 1px solid #1f1f29; padding-top: 12px; }
 
+        /* СТРАНИЦА ИСТОРИИ */
         .full-story { background-color: var(--panel-bg); padding: 40px; border-radius: 12px; border: 1px solid #22222c; }
         .full-story-content { font-size: 17px; line-height: 1.7; color: #e1e1e6; white-space: pre-line; margin: 25px 0; }
         
-        .action-bar { display: flex; gap: 15px; margin-bottom: 20px; }
-        .like-btn { background: #1c1c24; border: 1px solid #3a3a4a; color: var(--text-main); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .action-bar { display: flex; gap: 15px; margin-bottom: 25px; }
+        .like-btn { background: #1c1c24; border: 1px solid #3a3a4a; color: var(--text-main); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .like-btn.liked { background: rgba(255, 51, 51, 0.2); border-color: var(--accent-red); color: var(--accent-red); }
 
+        /* КОММЕНТАРИИ */
         .comments-section { margin-top: 40px; }
         .comment-item { background: #181822; padding: 15px 20px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid var(--accent-purple); }
         .comment-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
 
         .loading-text, .no-stories { text-align: center; color: var(--text-muted); padding: 40px; font-style: italic; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            aside { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 2px solid var(--accent-red); padding: 20px; }
+            .logo { margin-bottom: 20px; }
+            .menu-nav { flex-direction: row; flex-wrap: wrap; }
+            .nav-btn { flex: 1; justify-content: center; padding: 10px; }
+            .main-content { margin-left: 0; padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
-    <header>
+    <aside>
         <div class="logo" onclick="showFeed()">CRYPT<span>EXT</span></div>
-        <div style="color: var(--text-muted); font-size: 13px; font-style: italic;">Открытый Архив Хоррора</div>
-    </header>
+        
+        <nav class="menu-nav">
+            <button id="nav-feed" class="nav-btn active" onclick="showFeed()">
+                👁️ Лента историй
+            </button>
+            <button id="nav-create" class="nav-btn btn-create" onclick="showCreateScreen()">
+                ✍️ Создать историю
+            </button>
+        </nav>
 
-    <div class="container">
+        <div class="sidebar-footer">
+            Открытый Архив Хоррора v2.0
+        </div>
+    </aside>
 
-        <main id="screen-feed" class="screen active">
-            <div class="story-form">
-                <h3 style="color: var(--accent-red); margin-bottom: 15px;">Поведай свой кошмар миру...</h3>
-                <div class="form-group">
-                    <label>Ваш псевдоним / никнейм</label>
-                    <input type="text" id="story-author" placeholder="Скальд из темноты">
+    <main class="main-content">
+        <div class="container">
+
+            <section id="screen-feed" class="screen active">
+                <h2 style="margin-bottom: 20px; letter-spacing: 1px; font-size: 26px;">Мрачные Хроники</h2>
+                <div id="stories-container" class="stories-grid">
+                    <div class="loading-text">Открываем врата архивов...</div>
                 </div>
-                <div class="form-group">
-                    <label>Название истории</label>
-                    <input type="text" id="story-title" placeholder="Введите зловещий заголовок">
+            </section>
+
+            <section id="screen-create" class="screen">
+                <div class="story-form">
+                    <h2 style="color: var(--accent-red); margin-bottom: 5px;">Поведай свой кошмар...</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 14px;">Твоя история останется в архивах навсегда.</p>
+                    
+                    <div class="form-group">
+                        <label>Ваш псевдоним / никнейм</label>
+                        <input type="text" id="story-author" placeholder="Скальд из темноты">
+                    </div>
+                    <div class="form-group">
+                        <label>Название истории</label>
+                        <input type="text" id="story-title" placeholder="Введите зловещий заголовок">
+                    </div>
+                    <div class="form-group">
+                        <label>Текст кошмара</label>
+                        <textarea id="story-text" rows="10" placeholder="Что произошло той ночью?.."></textarea>
+                    </div>
+                    <button class="nav-btn btn-create" style="width: 100%; padding: 15px;" onclick="publishStory()">Опубликовать на сайт</button>
                 </div>
-                <div class="form-group">
-                    <label>Текст кошмара</label>
-                    <textarea id="story-text" rows="6" placeholder="Что произошло той ночью?.."></textarea>
+            </section>
+
+            <section id="screen-story" class="screen">
+                <div class="action-bar">
+                    <button class="nav-btn" style="padding: 10px 20px;" onclick="showFeed()">← Назад в ленту</button>
                 </div>
-                <button class="btn" onclick="publishStory()">Опубликовать на сайт</button>
-            </div>
+                <div id="full-story-render"></div>
+            </section>
 
-            <h2 style="margin-bottom: 20px; letter-spacing: 1px;">Мрачные Хроники пользователей</h2>
-            <div id="stories-container" class="stories-grid">
-                <div class="loading-text">Открываем врата архивов...</div>
-            </div>
-        </main>
-
-        <section id="screen-story" class="screen">
-            <div class="action-bar">
-                <button class="btn btn-secondary" onclick="showFeed()">← Назад в ленту</button>
-            </div>
-            <div id="full-story-render"></div>
-        </section>
-
-    </div>
+        </div>
+    </main>
 
     <script>
         // --- НАСТРОЙКИ SUPABASE ---
@@ -147,8 +203,6 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let activeStoryId = null;
-        
-        // Создаем случайный маркер сессии для подсчета уникальных лайков/просмотров без логина
         const mySessionId = localStorage.getItem('cryptext_session') || Math.random().toString(36).substring(3);
         localStorage.setItem('cryptext_session', mySessionId);
 
@@ -157,19 +211,27 @@
             return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
         }
 
-        function switchScreen(screenId) {
+        // Переключение экранов + подсветка кнопок в меню
+        function switchScreen(screenId, navId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
             document.getElementById(screenId).classList.add('active');
+            if(navId) document.getElementById(navId).classList.add('active');
             window.scrollTo(0,0);
         }
 
         function showFeed() {
             activeStoryId = null;
-            switchScreen('screen-feed');
+            switchScreen('screen-feed', 'nav-feed');
             loadStories();
         }
 
-        // ЗАГРУЗКА И ВЫВОД ВСЕХ ИСТОРИЙ НА ГЛАВНУЮ
+        function showCreateScreen() {
+            switchScreen('screen-create', 'nav-create');
+        }
+
+        // ЗАГРУЗКА ЛЕНТЫ
         async function loadStories() {
             const container = document.getElementById('stories-container');
             if (!container) return;
@@ -184,7 +246,7 @@
 
                 const stories = storiesRes.data || [];
                 if (stories.length === 0) {
-                    container.innerHTML = '<div class="no-stories">Архив пуст. Напишите первую историю выше!</div>';
+                    container.innerHTML = '<div class="no-stories">Архив пуст. Станьте первым, нажав "Создать историю"!</div>';
                     return;
                 }
 
@@ -197,7 +259,7 @@
                         <div class="story-card" onclick="openStory(${story.id})">
                             <div>
                                 <div class="story-title">${escapeHTML(story.title)}</div>
-                                <div class="story-meta">Автор: <span class="story-author">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)}</div>
+                                <div class="story-meta">От: <span class="story-author">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)}</div>
                                 <div class="story-snippet">${escapeHTML(story.content)}</div>
                             </div>
                             <div class="story-stats">
@@ -209,14 +271,14 @@
                     `;
                 }).join('');
             } catch (err) {
-                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка загрузки ленты.</div>';
+                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка загрузки хроник.</div>';
             }
         }
 
-        // ОТКРЫТИЕ ИСТОРИИ И НАКРУТКА ПРОСМОТРА
+        // ОТКРЫТИЕ ИСТОРИИ
         async function openStory(id) {
             activeStoryId = id;
-            switchScreen('screen-story');
+            switchScreen('screen-story', 'nav-feed');
             renderStoryPage(id);
 
             try {
@@ -228,7 +290,7 @@
             } catch(e){}
         }
 
-        // РЕНДЕР СТРАНИЦЫ С ПОЛНЫМ ТЕКСТОМ И КОММЕНТАРИЯМИ
+        // РЕНДЕР СТРАНИЦЫ ИСТОРИИ
         async function renderStoryPage(id) {
             const renderContainer = document.getElementById('full-story-render');
             if (!renderContainer) return;
@@ -243,7 +305,7 @@
 
                 const story = storyRes.data;
                 if (!story) {
-                    renderContainer.innerHTML = '<p>История не найдена.</p>';
+                    renderContainer.innerHTML = '<p>История испарилась...</p>';
                     return;
                 }
 
@@ -259,25 +321,25 @@
                         
                         <div style="margin: 30px 0 20px 0; padding-top:20px; border-top:1px solid #22222c;">
                             <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${story.id}, ${isLiked})">
-                                ❤️ Оценить <span>(${likes.length})</span>
+                                ❤️ Кошмарно <span>(${likes.length})</span>
                             </button>
                         </div>
 
                         <div class="comments-section">
-                            <h3 style="margin-bottom:20px;">Обсуждение (${comments.length})</h3>
+                            <h3 style="margin-bottom:20px;">Мысли читателей (${comments.length})</h3>
                             
                             <div class="story-form" style="padding:20px; margin-bottom:25px; border-left-color: var(--accent-purple);">
                                 <div class="form-group" style="margin-bottom:12px;">
                                     <input type="text" id="comment-author" placeholder="Ваш псевдоним" style="padding:8px;">
                                 </div>
                                 <div class="form-group" style="margin-bottom:12px;">
-                                    <textarea id="comment-text" rows="2" placeholder="Оставить след в комментариях..." style="padding:8px;"></textarea>
+                                    <textarea id="comment-text" rows="2" placeholder="Написать комментарий..." style="padding:8px;"></textarea>
                                 </div>
-                                <button class="btn btn-secondary" onclick="postComment(${story.id})">Отправить</button>
+                                <button class="nav-btn" style="padding: 8px 15px; font-size:12px;" onclick="postComment(${story.id})">Отправить след</button>
                             </div>
 
                             <div>
-                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Здесь пока тихо... Слишком тихо.</p>' : 
+                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Тишина... Слишком тихо.</p>' : 
                                     comments.map(c => `
                                         <div class="comment-item">
                                             <div class="comment-header">
@@ -293,37 +355,34 @@
                     </article>
                 `;
             } catch(e) {
-                renderContainer.innerHTML = '<p>Ошибка сборки страницы.</p>';
+                renderContainer.innerHTML = '<p>Ошибка сборки темной страницы.</p>';
             }
         }
 
-        // ПУБЛИКАЦИЯ ИСТОРИИ (ОТ ЛЮБОГО ПОЛЬЗОВАТЕЛЯ)
+        // ОПУБЛИКОВАТЬ ИСТОРИЮ
         async function publishStory() {
-            const author = document.getElementById('story-author').value.trim() || "Анонимный писатель";
+            const author = document.getElementById('story-author').value.trim() || "Анонимный дух";
             const title = document.getElementById('story-title').value.trim();
             const content = document.getElementById('story-text').value.trim();
 
-            if (!title || !content) return alert("Пожалуйста, заполните название и текст истории!");
+            if (!title || !content) return alert("Заполните название и текст вашего кошмара!");
 
             try {
-                const { error } = await _supabase
-                    .from('stories')
-                    .insert([{ title, content, author }]);
-
+                const { error } = await _supabase.from('stories').insert([{ title, content, author }]);
                 if (error) throw error;
 
-                alert("Ваша история успешно записана в темные архивы!");
+                alert("Ваша летопись успешно добавлена в архив!");
                 document.getElementById('story-title').value = "";
                 document.getElementById('story-text').value = "";
-                loadStories();
+                showFeed(); // Возвращаем на главную ленту
             } catch(e) { 
-                alert("Ошибка при публикации: " + e.message); 
+                alert("Ошибка публикации: " + e.message); 
             }
         }
 
-        // ОСТАВИТЬ КОММЕНТАРИЙ
+        // КОММЕНТИРОВАНИЕ И ЛАЙКИ
         async function postComment(id) {
-            const author = document.getElementById('comment-author').value.trim() || "Анонимный призрак";
+            const author = document.getElementById('comment-author').value.trim() || "Аноним";
             const text = document.getElementById('comment-text').value.trim();
             if (!text) return alert("Напишите текст комментария!");
 
@@ -333,7 +392,6 @@
             } catch(e){}
         }
 
-        // ЛАЙКИ
         async function toggleLike(id, isLiked) {
             try {
                 if (isLiked) {
@@ -350,7 +408,7 @@
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        // Старт
+        // Запуск
         loadStories();
     </script>
 </body>

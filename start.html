@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptext — Страшные Истории</title>
+    <style>
+        /* --- КРАСОЧНЫЙ ХОРРОР ИНТЕРФЕЙС (CSS) --- */
+        :root {
+            --bg-color: #0a0a0c;
+            --panel-bg: #13131a;
+            --accent-red: #ff3333;
+            --accent-purple: #9d4edd;
+            --text-main: #f0f0f5;
+            --text-muted: #8a8a98;
+            --glow: 0 0 10px rgba(255, 51, 51, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(26, 11, 44, 0.4) 0%, rgba(10, 10, 12, 1) 80%);
+            z-index: -1;
+        }
+
+        header {
+            background-color: var(--panel-bg);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-red);
+            box-shadow: 0 4px 20px rgba(255, 51, 51, 0.15);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--accent-red);
+            text-shadow: var(--glow);
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        .logo span {
+            color: var(--accent-purple);
+            text-shadow: 0 0 10px rgba(157, 78, 221, 0.6);
+        }
+
+        .user-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-height: 38px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--accent-red), #b30000);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s ease;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-purple);
+            color: white;
+            box-shadow: 0 0 10px rgba(157, 78, 221, 0.5);
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 40px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .auth-box {
+            background-color: var(--panel-bg);
+            border: 1px solid #252530;
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 450px;
+            margin: 60px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .auth-box h2 { margin-bottom: 25px; font-size: 24px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 14px; }
+        
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px; background-color: #0b0b0f; border: 1px solid #3a3a4a;
+            border-radius: 6px; color: white; font-size: 16px; transition: 0.3s;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--accent-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.3);
+        }
+
+        .auth-box p { margin-top: 20px; color: var(--text-muted); font-size: 14px; }
+        .auth-box a { color: var(--accent-purple); text-decoration: none; font-weight: bold; }
+
+        .story-form {
+            background-color: var(--panel-bg); padding: 30px; border-radius: 10px;
+            border-left: 4px solid var(--accent-purple); margin-bottom: 40px;
+        }
+
+        .stories-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; margin-top: 20px;
+        }
+
+        .story-card {
+            background-color: var(--panel-bg); border: 1px solid #22222c; border-radius: 10px;
+            padding: 25px; cursor: pointer; display: flex; flex-direction: column;
+            justify-content: space-between; transition: all 0.3s ease;
+        }
+
+        .story-card:hover {
+            border-color: var(--accent-red); transform: translateY(-5px); box-shadow: 0 8px 25px rgba(255, 51, 51, 0.1);
+        }
+
+        .story-title { color: var(--accent-red); font-size: 20px; margin-bottom: 8px; font-weight: bold; line-height: 1.3; }
+        .story-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+        .story-author { color: var(--accent-purple); font-weight: bold; }
+        
+        .story-snippet {
+            color: #b3b3ba; font-size: 14px; line-height: 1.5; margin-bottom: 20px;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .story-stats { display: flex; gap: 15px; font-size: 13px; color: var(--text-muted); border-top: 1px solid #1f1f29; padding-top: 12px; }
+        .stat-item { display: flex; align-items: center; gap: 5px; }
+
+        .full-story { background-color: var(--panel-bg); padding: 40px; border-radius: 12px; border: 1px solid #22222c; }
+        .full-story-content { font-size: 17px; line-height: 1.7; color: #e1e1e6; white-space: pre-line; margin: 25px 0; }
+        .rating-action-bar { display: flex; align-items: center; gap: 20px; padding: 20px 0; border-top: 1px solid #22222c; border-bottom: 1px solid #22222c; }
+
+        .like-btn {
+            background: #1c1c24; border: 1px solid #3a3a4a; color: var(--text-main); padding: 10px 20px;
+            border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.2s;
+        }
+
+        .like-btn.liked { background: rgba(255, 51, 51, 0.2); border-color: var(--accent-red); color: var(--accent-red); box-shadow: 0 0 10px rgba(255, 51, 51, 0.2); }
+        .like-btn:hover:not(.liked) { border-color: var(--accent-purple); }
+
+        .comments-section { margin-top: 40px; }
+        .comments-section h3 { margin-bottom: 20px; color: var(--text-main); }
+        .comment-form { margin-bottom: 30px; }
+        .comment-list { display: flex; flex-direction: column; gap: 15px; }
+        .comment-item { background: #181822; padding: 15px 20px; border-radius: 8px; border-left: 3px solid var(--accent-purple); }
+        .comment-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+        .comment-text { font-size: 15px; color: #d1d1d6; white-space: pre-line; }
+
+        .no-stories, .no-comments { text-align: center; color: var(--text-muted); font-style: italic; padding: 20px; }
+        .error-msg { color: var(--accent-red); font-size: 14px; margin-top: 5px; display: none; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" onclick="showFeed()">CRYPT<span>EXT</span></div>
+        <div class="user-panel" id="header-user-panel"></div>
+    </header>
+
+    <div class="container">
+
+        <main id="screen-feed" class="screen active">
+            <div id="write-story-block" style="display: none;">
+                <div class="story-form">
+                    <h3>Поведай свой кошмар...</h3>
+                    <div class="form-group">
+                        <label for="story-title">Название истории</label>
+                        <input type="text" id="story-title" placeholder="Введите зловещий заголовок">
+                    </div>
+                    <div class="form-group">
+                        <label for="story-text">Текст истории</label>
+                        <textarea id="story-text" rows="5" placeholder="Что произошло той ночью?.."></textarea>
+                    </div>
+                    <button class="btn" onclick="publishStory()">Опубликовать</button>
+                    <div id="story-error" class="error-msg">Заполните все поля!</div>
+                </div>
+            </div>
+
+            <h2 style="margin-bottom: 10px; letter-spacing: 1px;">Последние городские легенды</h2>
+            <div id="stories-container" class="stories-grid"></div>
+        </main>
+
+        <section id="screen-story" class="screen">
+            <button class="btn btn-secondary" onclick="showFeed()" style="margin-bottom: 20px;">← Назад в ленту</button>
+            <div id="full-story-render"></div>
+        </section>
+
+        <section id="screen-login" class="screen">
+            <div class="auth-box">
+                <h2>Вход в обитель</h2>
+                <div class="form-group">
+                    <label for="login-username">Имя пользователя</label>
+                    <input type="text" id="login-username">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password">
+                </div>
+                <button class="btn" onclick="handleLogin()">Войти</button>
+                <div id="login-error" class="error-msg">Неверное имя пользователя или пароль!</div>
+                <p>Впервые здесь? <a href="#" onclick="switchScreen('screen-register')">Создать аккаунт</a></p>
+            </div>
+        </section>
+
+        <section id="screen-register" class="screen">
+            <div class="auth-box">
+                <h2>Регистрация автора</h2>
+                <div class="form-group">
+                    <label for="reg-username">Придумайте имя пользователя</label>
+                    <input type="text" id="reg-username">
+                    <div id="reg-username-error" class="error-msg">Это имя уже занято другим существом!</div>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Придумайте пароль</label>
+                    <input type="password" id="reg-password">
+                </div>
+                <button class="btn btn-secondary" onclick="handleRegister()">Зарегистрироваться</button>
+                <div id="reg-general-error" class="error-msg">Заполните все поля!</div>
+                <p>Уже есть аккаунт? <a href="#" onclick="switchScreen('screen-login')">Войти</a></p>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // --- ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ В LOCALSTORAGE ---
+        const INITIAL_DATA = {
+            users: [],
+            stories: [{
+                id: 1,
+                title: "Последний звонок",
+                author: "FanKOTberemotWorld",
+                date: "19.05.2026",
+                content: "В тот вечер я остался в квартире один. Родители уехали на дачу, и я был рад тишине — хотелось просто отдохнуть от всех, завалиться в кровать с телефоном и ни о чем не думать. Около двух часов ночи я уже почти провалился в сон, когда телефон на тумбочке завибрировал.\n\nЭкран вспыхнул, разрезая темноту комнаты. Номер был странным — длинная череда цифр, начинающаяся с плюса и кода страны, который я видел впервые...",
+                likedBy: [],
+                comments: [{ author: "Ghost_User", text: "Жутко! Жду продолжения.", date: "19.05.2026" }],
+                views: 12
+            }]
+        };
+
+        // Загружаем данные или создаем новые, если хранилище пустое
+        if (!localStorage.getItem('cryptext_db')) {
+            localStorage.setItem('cryptext_db', JSON.stringify(INITIAL_DATA));
+        }
+
+        function getDB() {
+            return JSON.parse(localStorage.getItem('cryptext_db'));
+        }
+
+        function saveDB(data) {
+            localStorage.setItem('cryptext_db', JSON.stringify(data));
+        }
+
+        function getCurrentDate() {
+            const now = new Date();
+            return `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+        }
+
+        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
+        let currentUser = localStorage.getItem('cryptext_user') || null;
+        let activeStoryId = null;
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            document.querySelectorAll('.error-msg').forEach(err => err.style.display = 'none');
+            window.scrollTo(0,0);
+        }
+
+        function showFeed() {
+            activeStoryId = null;
+            switchScreen('screen-feed');
+            renderStories();
+        }
+
+        function updateUI() {
+            const userPanel = document.getElementById('header-user-panel');
+            const writeBlock = document.getElementById('write-story-block');
+
+            if (currentUser) {
+                userPanel.innerHTML = `
+                    <span style="color: var(--text-main)">Привет, <span class="story-author">${escapeHTML(currentUser)}</span></span>
+                    <button class="btn btn-secondary" onclick="handleLogout()">Выйти</button>
+                `;
+                writeBlock.style.display = 'block';
+            } else {
+                userPanel.innerHTML = `
+                    <button class="btn btn-secondary" onclick="switchScreen('screen-login')">Войти</button>
+                    <button class="btn" onclick="switchScreen('screen-register')">Регистрация</button>
+                `;
+                writeBlock.style.display = 'none';
+            }
+
+            if (activeStoryId) {
+                renderFullStory(activeStoryId);
+            } else {
+                renderStories();
+            }
+        }
+
+        // Рендер ленты историй
+        function renderStories() {
+            const container = document.getElementById('stories-container');
+            const db = getDB();
+            const storiesList = db.stories;
+
+            if (storiesList.length === 0) {
+                container.innerHTML = `<div class="no-stories">Лента пуста. Поведайте свой кошмар первым...</div>`;
+                return;
+            }
+
+            container.innerHTML = storiesList.map(story => `
+                <div class="story-card" onclick="openStory(${story.id})">
+                    <div>
+                        <div class="story-title">${escapeHTML(story.title)}</div>
+                        <div class="story-meta">
+                            Автор: <span class="story-author">${escapeHTML(story.author)}</span> • ${story.date}
+                        </div>
+                        <div class="story-snippet">${escapeHTML(story.content)}</div>
+                    </div>
+                    <div class="story-stats">
+                        <span class="stat-item" title="Просмотры">👁️ ${story.views || 0}</span>
+                        <span class="stat-item" title="Лайки">❤️ ${story.likedBy.length}</span>
+                        <span class="stat-item" title="Комментарии">💬 ${story.comments.length}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Открытие истории + инкремент просмотров
+        function openStory(id) {
+            activeStoryId = id;
+            const db = getDB();
+            const story = db.stories.find(s => s.id === id);
+            if (story) {
+                story.views = (story.views || 0) + 1;
+                saveDB(db);
+            }
+            
+            switchScreen('screen-story');
+            renderFullStory(id);
+        }
+
+        // Рендер страницы полной истории
+        function renderFullStory(id) {
+            const renderContainer = document.getElementById('full-story-render');
+            const db = getDB();
+            const story = db.stories.find(s => s.id === id);
+
+            if (!story) {
+                renderContainer.innerHTML = `<p style="color: var(--accent-red)">История не найдена.</p>`;
+                return;
+            }
+
+            const isLiked = currentUser && story.likedBy.includes(currentUser);
+
+            renderContainer.innerHTML = `
+                <article class="full-story">
+                    <h1 class="story-title" style="font-size: 32px;">${escapeHTML(story.title)}</h1>
+                    <div class="story-meta" style="font-size: 14px; margin-top: 10px;">
+                        Автор: <span class="story-author">${escapeHTML(story.author)}</span> • Дата: ${story.date} • Просмотров: ${story.views || 0}
+                    </div>
+                    
+                    <div class="full-story-content">${escapeHTML(story.content)}</div>
+                    
+                    <div class="rating-action-bar">
+                        <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${story.id})">
+                            ${isLiked ? '❤️ Учтено' : '🖤 Мрачно (Лайк)'} <span>(${story.likedBy.length})</span>
+                        </button>
+                        ${!currentUser ? '<span style="color: var(--text-muted); font-size:13px;">Войдите, чтобы оценивать и комментировать</span>' : ''}
+                    </div>
+
+                    <div class="comments-section">
+                        <h3>Обсуждение легенды (${story.comments.length})</h3>
+                        
+                        ${currentUser ? `
+                            <div class="comment-form">
+                                <div class="form-group">
+                                    <textarea id="comment-input" rows="3" placeholder="Оставьте свой след в комментариях..."></textarea>
+                                </div>
+                                <button class="btn" onclick="addComment(${story.id})">Отправить</button>
+                                    <div id="comment-error" class="error-msg">Нельзя отправить пустоту!</div>
+                            </div>
+                        ` : ''}
+
+                        <div class="comment-list">
+                            ${story.comments.length === 0 ? '<div class="no-comments">Здесь пока тихо... Слишком тихо.</div>' : 
+                                story.comments.map(c => `
+                                    <div class="comment-item">
+                                        <div class="comment-header">
+                                            <span class="story-author">${escapeHTML(c.author)}</span>
+                                            <span>${c.date}</span>
+                                        </div>
+                                        <div class="comment-text">${escapeHTML(c.text)}</div>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        // Поставить/убрать лайк
+        function toggleLike(id) {
+            if (!currentUser) {
+                switchScreen('screen-login');
+                return;
+            }
+
+            const db = getDB();
+            const story = db.stories.find(s => s.id === id);
+            if (!story) return;
+
+            const userIndex = story.likedBy.indexOf(currentUser);
+            if (userIndex === -1) {
+                story.likedBy.push(currentUser);
+            } else {
+                story.likedBy.splice(userIndex, 1);
+            }
+
+            saveDB(db);
+            renderFullStory(id);
+        }
+
+        // Оставить комментарий
+        function addComment(id) {
+            if (!currentUser) return;
+
+            const textInput = document.getElementById('comment-input').value.trim();
+            const error = document.getElementById('comment-error');
+
+            if (!textInput) {
+                error.style.display = 'block';
+                return;
+            }
+
+            const db = getDB();
+            const story = db.stories.find(s => s.id === id);
+            if (story) {
+                story.comments.push({
+                    author: currentUser,
+                    text: textInput,
+                    date: getCurrentDate()
+                });
+                saveDB(db);
+                renderFullStory(id);
+            }
+        }
+
+        // Опубликовать свою историю
+        function publishStory() {
+            const titleInput = document.getElementById('story-title').value.trim();
+            const textInput = document.getElementById('story-text').value.trim();
+            const error = document.getElementById('story-error');
+
+            if (!titleInput || !textInput) {
+                error.style.display = 'block';
+                return;
+            }
+
+            const db = getDB();
+            const newStory = {
+                id: Date.now(),
+                title: titleInput,
+                content: textInput,
+                author: currentUser,
+                date: getCurrentDate(),
+                likedBy: [],
+                comments: [],
+                views: 0
+            };
+
+            db.stories.unshift(newStory);
+            saveDB(db);
+
+            document.getElementById('story-title').value = '';
+            document.getElementById('story-text').value = '';
+            renderStories();
+        }
+
+        // Регистрация нового автора
+        function handleRegister() {
+            const usernameInput = document.getElementById('reg-username').value.trim();
+            const passwordInput = document.getElementById('reg-password').value.trim();
+            const nameError = document.getElementById('reg-username-error');
+            const genError = document.getElementById('reg-general-error');
+
+            nameError.style.display = 'none';
+            genError.style.display = 'none';
+
+            if (!usernameInput || !passwordInput) {
+                genError.style.display = 'block';
+                return;
+            }
+
+            const db = getDB();
+            const userExists = db.users.some(u => u.username.toLowerCase() === usernameInput.toLowerCase());
+            
+            if (userExists) {
+                nameError.style.display = 'block';
+                return;
+            }
+
+            db.users.push({ username: usernameInput, password: passwordInput });
+            saveDB(db);
+
+            currentUser = usernameInput;
+            localStorage.setItem('cryptext_user', currentUser);
+            
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+            showFeed();
+            updateUI();
+        }
+
+        // Вход в аккаунт
+        function handleLogin() {
+            const usernameInput = document.getElementById('login-username').value.trim();
+            const passwordInput = document.getElementById('login-password').value.trim();
+            const loginError = document.getElementById('login-error');
+            loginError.style.display = 'none';
+
+            const db = getDB();
+            const user = db.users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === passwordInput);
+            
+            if (!user) {
+                loginError.style.display = 'block';
+                return;
+            }
+
+            currentUser = user.username;
+            localStorage.setItem('cryptext_user', currentUser);
+
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            showFeed();
+            updateUI();
+        }
+
+        // Выход из аккаунта
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('cryptext_user');
+            showFeed();
+            updateUI();
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        // Старт приложения при загрузке
+        updateUI();
+    </script>
+</body>
+</html>

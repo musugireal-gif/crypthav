@@ -7,120 +7,509 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-color: #0a0a0c; --panel-bg: #13131a; --accent-red: #ff3333; 
-            --accent-purple: #9d4edd; --accent-gold: #ffd700; --text-main: #f0f0f5; 
-            --text-muted: #8a8a98; --sidebar-width: 280px;
+            --bg-color: #0a0a0c;
+            --panel-bg: #13131a;
+            --accent-red: #ff3333;
+            --accent-purple: #9d4edd;
+            --accent-gold: #ffd700;
+            --text-main: #f0f0f5;
+            --text-muted: #8a8a98;
+            --glow: 0 0 10px rgba(255, 51, 51, 0.4);
+            --sidebar-width: 280px;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; }
-        aside { width: var(--sidebar-width); background-color: var(--panel-bg); height: 100vh; position: fixed; border-right: 2px solid var(--accent-red); padding: 30px 20px; }
-        .logo { font-size: 26px; font-weight: bold; color: var(--accent-red); cursor: pointer; margin-bottom: 40px; text-align: center; }
-        .menu-nav { display: flex; flex-direction: column; gap: 15px; }
-        .nav-btn { background: #181822; color: var(--text-main); border: 1px solid #2d2d3d; padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; text-align: left; transition: 0.3s; }
-        .nav-btn.active { border-color: var(--accent-red); background: rgba(255, 51, 51, 0.05); }
-        .btn-create { background: var(--accent-red); color: white; border: none; text-align: center; }
-        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; }
-        .screen { display: none; } .screen.active { display: block; }
-        .story-card { background-color: var(--panel-bg); border: 1px solid #22222c; padding: 25px; border-radius: 10px; cursor: pointer; margin-bottom: 20px; }
-        .story-title { color: var(--accent-red); font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-        .btn-fav { padding: 10px 20px; border-radius: 20px; cursor: pointer; border: 1px solid #3a3a4a; background: #1c1c24; color: var(--accent-gold); margin-top: 10px; }
-        .btn-fav.active { background: rgba(255, 215, 0, 0.1); border-color: var(--accent-gold); }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(26, 11, 44, 0.4) 0%, rgba(10, 10, 12, 1) 80%);
+            z-index: -1;
+        }
+
+        /* БОKОВОЕ МЕНЮ (SIDEBAR) */
+        aside {
+            width: var(--sidebar-width);
+            background-color: var(--panel-bg);
+            height: 100vh;
+            position: fixed;
+            top: 0; left: 0;
+            border-right: 2px solid var(--accent-red);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            box-shadow: 4px 0 20px rgba(255, 51, 51, 0.1);
+            z-index: 10;
+        }
+
+        .logo { 
+            font-size: 26px; font-weight: bold; color: var(--accent-red); 
+            text-shadow: var(--glow); letter-spacing: 2px; cursor: pointer; 
+            margin-bottom: 40px; text-align: center;
+        }
+        .logo span { color: var(--accent-purple); text-shadow: 0 0 10px rgba(157, 78, 221, 0.6); }
+
+        .menu-nav { display: flex; flex-direction: column; gap: 15px; flex: 1; }
+        
+        .nav-btn {
+            background: #181822; color: var(--text-main); border: 1px solid #2d2d3d;
+            padding: 14px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;
+            text-align: left; transition: 0.3s; font-size: 14px; display: flex; align-items: center; gap: 10px;
+        }
+        .nav-btn:hover, .nav-btn.active {
+            border-color: var(--accent-red); background: rgba(255, 51, 51, 0.05); color: white; box-shadow: 0 0 10px rgba(255, 51, 51, 0.2);
+        }
+        .nav-btn.btn-create {
+            background: linear-gradient(45deg, var(--accent-red), #b30000); border: none; color: white; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; justify-content: center;
+        }
+        .nav-btn.btn-create:hover { box-shadow: var(--glow); transform: translateY(-2px); }
+        .nav-btn.btn-danger { background: #441111; border: 1px solid var(--accent-red); color: #ff9999; }
+        .nav-btn.btn-danger:hover { background: var(--accent-red); color: white; }
+
+        .sidebar-footer { font-size: 11px; color: var(--text-muted); text-align: center; font-style: italic; }
+
+        /* ИНДИКАТОР АДМИНА */
+        .admin-badge {
+            background: rgba(255, 215, 0, 0.1); border: 1px dashed var(--accent-gold);
+            padding: 10px; border-radius: 6px; color: var(--accent-gold);
+            font-size: 12px; text-align: center; margin-bottom: 15px; font-weight: bold;
+            display: none; box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
+        }
+
+        /* ОСНОВНОЙ КОНТЕНТ */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 900px; width: 100%; margin: 0 auto; }
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        /* ФОРМА СОЗДАНИЯ */
+        .story-form {
+            background-color: var(--panel-bg); padding: 35px; border-radius: 12px;
+            border-left: 4px solid var(--accent-red); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 14px; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 14px; background-color: #0b0b0f; border: 1px solid #3a3a4a;
+            border-radius: 6px; color: white; font-size: 16px; transition: 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--accent-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.2); }
+
+        /* СЕТКА С ИСТОРИЯМИ */
+        .stories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 20px; }
+        .story-card {
+            background-color: var(--panel-bg); border: 1px solid #22222c; border-radius: 10px;
+            padding: 25px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; transition: 0.3s;
+        }
+        .story-card:hover { border-color: var(--accent-red); transform: translateY(-5px); box-shadow: 0 8px 25px rgba(255, 51, 51, 0.1); }
+        .story-title { color: var(--accent-red); font-size: 20px; margin-bottom: 8px; font-weight: bold; }
+        .story-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+        
+        .story-author { color: var(--accent-purple); font-weight: bold; }
+        .story-author.is-admin { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+
+        .story-snippet { color: #b3b3ba; font-size: 14px; line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .story-stats { display: flex; gap: 15px; font-size: 13px; color: var(--text-muted); border-top: 1px solid #1f1f29; padding-top: 12px; }
+
+        /* СТРАНИЦА ИСТОРИИ */
+        .full-story { background-color: var(--panel-bg); padding: 40px; border-radius: 12px; border: 1px solid #22222c; }
+        .full-story-content { font-size: 17px; line-height: 1.7; color: #e1e1e6; white-space: pre-line; margin: 25px 0; }
+        
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .like-btn { background: #1c1c24; border: 1px solid #3a3a4a; color: var(--text-main); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .like-btn.liked { background: rgba(255, 51, 51, 0.2); border-color: var(--accent-red); color: var(--accent-red); }
+
+        /* КОММЕНТАРИИ */
+        .comments-section { margin-top: 40px; }
+        .comment-item { background: #181822; padding: 15px 20px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid var(--accent-purple); }
+        .comment-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+
+        .loading-text, .no-stories { text-align: center; color: var(--text-muted); padding: 40px; font-style: italic; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            aside { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 2px solid var(--accent-red); padding: 20px; }
+            .logo { margin-bottom: 20px; }
+            .menu-nav { flex-direction: row; flex-wrap: wrap; }
+            .nav-btn { flex: 1; justify-content: center; padding: 10px; }
+            .main-content { margin-left: 0; padding: 20px; }
+        }
     </style>
 </head>
 <body>
 
     <aside>
         <div class="logo" onclick="showFeed()">CRYPT<span>EXT</span></div>
+        
+        <div id="admin-indicator" class="admin-badge">👑 РЕЖИМ РАЗРАБОТЧИКА</div>
+
         <nav class="menu-nav">
-            <button id="nav-feed" class="nav-btn active" onclick="showFeed()">👁️ Лента</button>
-            <button id="nav-favs" class="nav-btn" onclick="showFavorites()">⭐ Избранное</button>
-            <button class="nav-btn btn-create" onclick="showCreateScreen()">✍️ Создать</button>
+            <button id="nav-feed" class="nav-btn active" onclick="showFeed()">
+                👁️ Лента историй
+            </button>
+            <button id="nav-create" class="nav-btn btn-create" onclick="showCreateScreen()">
+                ✍️ Создать историю
+            </button>
         </nav>
+
+        <div class="sidebar-footer">
+            Открытый Архив Хоррора v3.0
+        </div>
     </aside>
 
     <main class="main-content">
-        <div id="screen-feed" class="screen active"><h2>Лента</h2><div id="stories-container"></div></div>
-        <div id="screen-favs" class="screen"><h2>Избранное</h2><div id="favs-container"></div></div>
-        <div id="screen-create" class="screen">
-            <input type="text" id="story-author" placeholder="Автор" style="width:100%; padding:10px; margin-bottom:10px;">
-            <input type="text" id="story-title" placeholder="Название" style="width:100%; padding:10px; margin-bottom:10px;">
-            <textarea id="story-text" rows="10" style="width:100%; padding:10px; margin-bottom:10px;"></textarea>
-            <button class="nav-btn btn-create" onclick="publishStory()">Опубликовать</button>
+        <div class="container">
+
+            <section id="screen-feed" class="screen active">
+                <h2 style="margin-bottom: 20px; letter-spacing: 1px; font-size: 26px;">Мрачные Хроники</h2>
+                <div id="stories-container" class="stories-grid">
+                    <div class="loading-text">Загрузка подожди..</div>
+                </div>
+            </section>
+
+            <section id="screen-create" class="screen">
+                <div class="story-form">
+                    <h2 style="color: var(--accent-red); margin-bottom: 5px;">Создай историю...</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 25px; font-size: 14px;">Для активации админки введи свой секретный код в поле никнейма.</p>
+                    
+                    <div class="form-group">
+                        <label>Ваш псевдоним / никнейм</label>
+                        <input type="text" id="story-author" placeholder="Скальд из темноты">
+                    </div>
+                    <div class="form-group">
+                        <label>Название истории</label>
+                        <input type="text" id="story-title" placeholder="Введите зловещий заголовок">
+                    </div>
+                    <div class="form-group">
+                        <label>Текст истории</label>
+                        <textarea id="story-text" rows="10" placeholder="Что произошло той ночью?.."></textarea>
+                    </div>
+                    <button class="nav-btn btn-create" style="width: 100%; padding: 15px;" onclick="publishStory()">Опубликовать на сайт</button>
+                </div>
+            </section>
+
+            <section id="screen-story" class="screen">
+                <div class="action-bar">
+                    <button class="nav-btn" style="padding: 10px 20px;" onclick="showFeed()">← Назад в ленту</button>
+                    <button id="delete-my-story-btn" class="nav-btn btn-danger" style="display: none; padding: 10px 20px;">
+                        🗑️ Удалить историю
+                    </button>
+                </div>
+                <div id="full-story-render"></div>
+            </section>
+
         </div>
-        <div id="screen-story" class="screen"><div id="full-story-render"></div></div>
     </main>
 
     <script>
+        // --- 🛡️ КРИПТОГРАФИЧЕСКАЯ ЗАЩИТА АДМИНА 🛡️ ---
+        // Хакеры в F12 увидят только этот хэш! Они не узнают твой настоящий текстовый пароль.
+    
+        const ADMIN_HASH = '4e80a0628e8334be0172605f6396f9a0d33e5362df551608620ba01d1c448bb5';
+
+        // --- НАСТРОЙКИ SUPABASE ---
         const SUPABASE_URL = 'https://rlscraalizkoqysccteo.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsc2NyYWFsaXprb3F5c2NjdGVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMjgzNzAsImV4cCI6MjA5NDkwNDM3MH0.S4LEl8T8Ousp2dT--yWFqhRvVJCzgVYe4Vc21IvHsnM'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let activeStoryId = null;
         const mySessionId = localStorage.getItem('cryptext_session') || Math.random().toString(36).substring(3);
         localStorage.setItem('cryptext_session', mySessionId);
 
-        function switchScreen(sId, nId) {
+        let isAdminActive = localStorage.getItem('cryptext_admin') === 'true';
+
+        // Функция хеширования строки в SHA-256
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);                    
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function updateAdminUI() {
+            const indicator = document.getElementById('admin-indicator');
+            if (isAdminActive) {
+                if(indicator) indicator.style.display = 'block';
+                if(document.getElementById('story-author')) {
+                    document.getElementById('story-author').value = "Администратор 👑";
+                }
+            } else {
+                if(indicator) indicator.style.display = 'none';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+        }
+
+        function switchScreen(screenId, navId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(sId).classList.add('active');
-            if(nId) document.getElementById(nId).classList.add('active');
+            
+            document.getElementById(screenId).classList.add('active');
+            if(navId) document.getElementById(navId).classList.add('active');
+            window.scrollTo(0,0);
+            if(screenId === 'screen-create') updateAdminUI();
         }
 
-        function showFeed() { switchScreen('screen-feed', 'nav-feed'); loadStories(); }
-        function showCreateScreen() { switchScreen('screen-create'); }
+        function showFeed() {
+            activeStoryId = null;
+            switchScreen('screen-feed', 'nav-feed');
+            loadStories();
+        }
 
+        function showCreateScreen() {
+            switchScreen('screen-create', 'nav-create');
+        }
+
+        // ЗАГРУЗКА ВСЕЙ ЛЕНТЫ
         async function loadStories() {
-            const { data: stories } = await _supabase.from('stories').select('*');
-            document.getElementById('stories-container').innerHTML = stories.map(s => `
-                <div class="story-card" onclick="openStory(${s.id})">
-                    <div class="story-title">${s.title}</div>
-                    <div class="story-meta">Автор: ${s.author}</div>
-                </div>
-            `).join('');
+            const container = document.getElementById('stories-container');
+            if (!container) return;
+
+            try {
+                const [storiesRes, commentsRes, likesRes, viewsRes] = await Promise.all([
+                    _supabase.from('stories').select('*').order('id', { ascending: false }),
+                    _supabase.from('comments').select('*'),
+                    _supabase.from('likes').select('*'),
+                    _supabase.from('views').select('*')
+                ]);
+
+                const stories = storiesRes.data || [];
+                if (stories.length === 0) {
+                    container.innerHTML = '<div class="no-stories">Архив пуст. Напишите первую историю!</div>';
+                    return;
+                }
+
+                container.innerHTML = stories.map(story => {
+                    const cCount = (commentsRes.data || []).filter(c => c.story_id === story.id).length;
+                    const lCount = (likesRes.data || []).filter(l => l.story_id === story.id).length;
+                    const vCount = (viewsRes.data || []).filter(v => v.story_id === story.id).length;
+                    const adminClass = story.author.includes('👑') ? 'is-admin' : '';
+
+                    return `
+                        <div class="story-card" onclick="openStory(${story.id})">
+                            <div>
+                                <div class="story-title">${escapeHTML(story.title)}</div>
+                                <div class="story-meta">От: <span class="story-author ${adminClass}">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)}</div>
+                                <div class="story-snippet">${escapeHTML(story.content)}</div>
+                            </div>
+                            <div class="story-stats">
+                                <span>👁️ ${vCount}</span>
+                                <span>❤️ ${lCount}</span>
+                                <span>💬 ${cCount}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="no-stories" style="color:var(--accent-red)">Ошибка подключения к бездне таблиц.</div>';
+            }
         }
 
-        async function showFavorites() {
-            switchScreen('screen-favs', 'nav-favs');
-            const { data: favs } = await _supabase.from('favorites').select('story_id').eq('viewer_ip', mySessionId);
-            const favIds = favs.map(f => f.story_id);
-            if(favIds.length === 0) { document.getElementById('favs-container').innerHTML = "Список пуст..."; return; }
-            
-            const { data: stories } = await _supabase.from('stories').select('*').in('id', favIds);
-            document.getElementById('favs-container').innerHTML = stories.map(s => `
-                <div class="story-card" onclick="openStory(${s.id})"><div class="story-title">${s.title}</div></div>
-            `).join('');
-        }
-
-        async function toggleFav(id, isFav) {
-            if (isFav) await _supabase.from('favorites').delete().eq('story_id', id).eq('viewer_ip', mySessionId);
-            else await _supabase.from('favorites').insert([{ story_id: id, viewer_ip: mySessionId }]);
-            openStory(id);
-        }
-
+        // ОТКРЫТИЕ ИСТОРИИ И НАКРУТКА ПРОСМОТРА
         async function openStory(id) {
-            switchScreen('screen-story');
-            const { data: story } = await _supabase.from('stories').select('*').eq('id', id).single();
-            const { data: favs } = await _supabase.from('favorites').select('*').eq('story_id', id);
-            const isFav = favs.some(f => f.viewer_ip === mySessionId);
-            
-            document.getElementById('full-story-render').innerHTML = `
-                <button class="nav-btn" onclick="showFeed()">← Назад</button>
-                <h1 style="margin: 20px 0;">${story.title}</h1>
-                <p>${story.content}</p>
-                <div style="margin-top:20px;">
-                    <button class="btn-fav ${isFav ? 'active' : ''}" onclick="toggleFav(${story.id}, ${isFav})">⭐ В избранное (${favs.length})</button>
-                </div>
-            `;
+            activeStoryId = id;
+            switchScreen('screen-story', 'nav-feed');
+            renderStoryPage(id);
+
+            try {
+                if (!sessionStorage.getItem(`v_${id}`)) {
+                    await _supabase.from('views').insert([{ story_id: id, viewer_session: mySessionId }]);
+                    sessionStorage.setItem(`v_${id}`, 'true');
+                    renderStoryPage(id);
+                }
+            } catch(e){}
         }
 
+        // РЕНДЕР СТРАНИЦЫ ИСТОРИИ И КОММЕНТАРИЕВ
+        async function renderStoryPage(id) {
+            const renderContainer = document.getElementById('full-story-render');
+            const deleteBtn = document.getElementById('delete-my-story-btn');
+            if (!renderContainer) return;
+
+            try {
+                const [storyRes, commentsRes, likesRes, viewsRes] = await Promise.all([
+                    _supabase.from('stories').select('*').eq('id', id).maybeSingle(),
+                    _supabase.from('comments').select('*').eq('story_id', id).order('id', { ascending: true }),
+                    _supabase.from('likes').select('*').eq('story_id', id),
+                    _supabase.from('views').select('*').eq('story_id', id)
+                ]);
+
+                const story = storyRes.data;
+                if (!story) {
+                    renderContainer.innerHTML = '<p style="padding:20px; color:var(--accent-red);">История бесследно стёрта из архива.</p>';
+                    deleteBtn.style.display = 'none';
+                    return;
+                }
+
+                // ПРОВЕРКА КНОПКИ УДАЛЕНИЯ (Своя сессия ИЛИ включенный админ)
+                if (story.creator_session === mySessionId || isAdminActive) {
+                    deleteBtn.style.display = 'inline-block';
+                    deleteBtn.innerHTML = isAdminActive ? "🗑️ Удалить (РЕЖИМ АДМИНА)" : "🗑️ Удалить мою историю";
+                    deleteBtn.onclick = () => deleteStory(story.id);
+                } else {
+                    deleteBtn.style.display = 'none';
+                }
+
+                const comments = commentsRes.data || [];
+                const likes = likesRes.data || [];
+                const isLiked = likes.some(l => l.viewer_ip === mySessionId);
+                const adminClass = story.author.includes('👑') ? 'is-admin' : '';
+
+                renderContainer.innerHTML = `
+                    <article class="full-story">
+                        <h1 class="story-title" style="font-size:32px;">${escapeHTML(story.title)}</h1>
+                        <div class="story-meta" style="margin: 10px 0 20px 0;">Автор: <span class="story-author ${adminClass}">${escapeHTML(story.author)}</span> • ${formatDate(story.created_at)} • 👁️ Просмотров: ${viewsRes.data?.length || 0}</div>
+                        <div class="full-story-content">${escapeHTML(story.content)}</div>
+                        
+                        <div style="margin: 30px 0 20px 0; padding-top:20px; border-top:1px solid #22222c;">
+                            <button class="like-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${story.id}, ${isLiked})">
+                                ❤️ Лайк <span>(${likes.length})</span>
+                            </button>
+                        </div>
+
+                        <div class="comments-section">
+                            <h3 style="margin-bottom:20px;">Мысли читателей (${comments.length})</h3>
+                            
+                            <div class="story-form" style="padding:20px; margin-bottom:25px; border-left-color: var(--accent-purple);">
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <input type="text" id="comment-author" placeholder="Ваш псевдоним" style="padding:8px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom:12px;">
+                                    <textarea id="comment-text" rows="2" placeholder="Написать комментарий..." style="padding:8px;"></textarea>
+                                </div>
+                                <button class="nav-btn" style="padding: 8px 15px; font-size:12px;" onclick="postComment(${story.id})">Отправить след</button>
+                            </div>
+
+                            <div>
+                                ${comments.length === 0 ? '<p style="color:var(--text-muted); font-style:italic;">Тишина... Слишком тихо.</p>' : 
+                                    comments.map(c => `
+                                        <div class="comment-item">
+                                            <div class="comment-header">
+                                                <span style="color:var(--accent-purple); font-weight:bold;">${escapeHTML(c.author)}</span>
+                                                <span>${formatDate(c.created_at)}</span>
+                                            </div>
+                                            <div style="font-size:15px; color:#cfcfd6;">${escapeHTML(c.text)}</div>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                        </div>
+                    </article>
+                `;
+            } catch(e) {
+                renderContainer.innerHTML = '<p>Ошибка сборки темной страницы.</p>';
+            }
+        }
+
+        // ПУБЛИКАЦИЯ ИСТОРИИ И ОПРЕДЕЛЕНИЕ АДМИНА
         async function publishStory() {
-            const author = document.getElementById('story-author').value;
-            const title = document.getElementById('story-title').value;
-            const content = document.getElementById('story-text').value;
-            if(!title || !content) return alert("Заполни все поля!");
-            await _supabase.from('stories').insert([{ title, content, author, creator_session: mySessionId }]);
-            alert("Опубликовано!");
-            showFeed();
+            let author = document.getElementById('story-author').value.trim();
+            const title = document.getElementById('story-title').value.trim();
+            const content = document.getElementById('story-text').value.trim();
+
+            // Проверяем ввод секретного кода в поле автора
+            if (author) {
+                const inputHash = await sha256(author);
+                if (inputHash === ADMIN_HASH) {
+                    isAdminActive = true;
+                    localStorage.setItem('cryptext_admin', 'true');
+                    document.getElementById('story-author').value = "Администратор 👑";
+                    updateAdminUI();
+                    alert("Доступ подтверждён. Включен скрытый статус Администратора!");
+                    return;
+                }
+            }
+
+            if (!title || !content) return alert("Заполните название и текст вашего кошмара!");
+
+            try {
+                const { error } = await _supabase.from('stories').insert([{ 
+                    title, 
+                    content, 
+                    author: author || "Анонимный дух",
+                    creator_session: mySessionId 
+                }]);
+                
+                if (error) throw error;
+
+                alert("Ваша летопись успешно добавлена в архив!");
+                document.getElementById('story-title').value = "";
+                document.getElementById('story-text').value = "";
+                showFeed();
+            } catch(e) { 
+                alert("Ошибка публикации: " + e.message); 
+            }
         }
 
+        // УДАЛЕНИЕ ИСТОРИЙ
+        async function deleteStory(id) {
+            if (!confirm("Вы уверены, что хотите навсегда стереть эту историю?")) return;
+
+            try {
+                let query = _supabase.from('stories').delete().eq('id', id);
+                
+                // Если ты не админ, то база разрешит удалить только твою сессию
+                if (!isAdminActive) {
+                    query = query.eq('creator_session', mySessionId);
+                }
+
+                const { error } = await query;
+                if (error) throw error;
+
+                alert("История успешно уничтожена.");
+                showFeed();
+            } catch(e) {
+                alert("Не удалось удалить историю: " + e.message);
+            }
+        }
+
+        // КОММЕНТИРОВАНИЕ И ЛАЙКИ
+        async function postComment(id) {
+            const author = document.getElementById('comment-author').value.trim() || "Аноним";
+            const text = document.getElementById('comment-text').value.trim();
+            if (!text) return alert("Напишите текст комментария!");
+
+            try {
+                await _supabase.from('comments').insert([{ story_id: id, author, text }]);
+                renderStoryPage(id);
+            } catch(e){}
+        }
+
+        async function toggleLike(id, isLiked) {
+            try {
+                if (isLiked) {
+                    await _supabase.from('likes').delete().eq('story_id', id).eq('viewer_ip', mySessionId);
+                } else {
+                    await _supabase.from('likes').insert([{ story_id: id, viewer_ip: mySessionId }]);
+                }
+                renderStoryPage(id);
+            } catch(e){}
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        // Запуск систем
+        updateAdminUI();
         loadStories();
     </script>
 </body>
